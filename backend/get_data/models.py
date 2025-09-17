@@ -114,7 +114,6 @@ class StylePredict(models.Model):
 
     class Meta:
         ordering = ['version']
-        unique_together = [['style', 'version']]
 
     def __str__(self):
         return f"{self.version}:{self.style.title}"

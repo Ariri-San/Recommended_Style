@@ -8,6 +8,8 @@ from . import models
 admin.site.register(models.Site)
 admin.site.register(models.Category)
 admin.site.register(models.Color)
+# admin.site.register(models.StylePredict)
+
 
 
 @admin.register(models.Product)
@@ -34,9 +36,29 @@ class ProductPredictAdmin(admin.ModelAdmin):
 @admin.register(models.Style)
 class StyleAdmin(admin.ModelAdmin):
     list_display = ["id", "title", "is_man"]
-    readonly_fields = ['thumbnail']
+    readonly_fields = ['thumbnail', 'skin_color_2', 'hair_color_2']
 
     def thumbnail(self, instance):
         if instance.image != '':
             return format_html(f'<img src="{instance.image}" class="thumbnail" />')
+        return ''
+    
+    def skin_color_2(self, instance):
+        if instance.skin_color != '':
+            return format_html(f'<div style="background-color:{instance.skin_color}; width:20px; height:20px"></div>')
+        return ''
+    
+    def hair_color_2(self, instance):
+        if instance.hair_color != '':
+            return format_html(f'<div style="background-color:{instance.hair_color}; width:20px; height:20px"></div>')
+        return ''
+
+@admin.register(models.StylePredict)
+class StylePredictAdmin(admin.ModelAdmin):
+    list_display = ["style", "version"]
+    readonly_fields = ['thumbnail']
+
+    def thumbnail(self, instance):
+        if instance.style.image != '':
+            return format_html(f'<img src="{instance.style.image}" class="thumbnail" />')
         return ''
