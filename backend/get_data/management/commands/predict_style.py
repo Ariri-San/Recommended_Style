@@ -1,13 +1,14 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.conf import settings
+from django.utils import timezone
 
 import os
 from PIL import Image
 import numpy as np
 import json
-from django.utils import timezone
 import torch
+import cv2
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
@@ -15,7 +16,10 @@ from torchvision.models.detection import keypointrcnn_resnet50_fpn, KeypointRCNN
 from sklearn.metrics.pairwise import cosine_similarity
 import torch.nn as nn
 import torch.nn.functional as F_torch
+from deepface import DeepFace
+import mediapipe as mp
 
+from schp.networks import resnet101
 from get_data.models import Style, Product, StylePredict, Category, ProductPredict
 
 # --- Classifiers ---
@@ -39,6 +43,25 @@ class SkinToneClassifier(nn.Module):
         self.fc = nn.Linear(input_dim, 3)  # RGB پیش‌بینی‌شده
     def forward(self, x):
         return self.fc(x)
+
+def estimate_skin_color(img_path):
+    mp_face = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+    img = cv2.imread(img_path)
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    result = mp_face.process(rgb)
+    if not result.detections:
+        return None
+    for det in result.detections:
+        box = det.location_data.relative_bounding_box
+        h, w, _ = img.shape
+        x1, y1, x2, y2 = int(box.xmin*w), int(box.ymin*h), int((box.xmin+box.width)*w), int((box.xmin+box.height)*h)
+        face_crop = img[y1:y2, x1:x2]
+        if face_crop.size == 0:
+            return None
+        avg = face_crop.mean(axis=(0,1))
+        return f"rgb({int(avg[2])},{int(avg[1])},{int(avg[0])})"
+    return None
+
 
 class Command(BaseCommand):
     help = 'Predicts personal attributes and product matches for Styles.'
@@ -115,9 +138,19 @@ class Command(BaseCommand):
 
     def _load_models(self):
         # Object detection
-        weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
-        self.object_model = fasterrcnn_resnet50_fpn(weights=weights).to(self.device).eval()
-        self.object_preprocess = weights.transforms()
+        # weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+        # self.object_model = fasterrcnn_resnet50_fpn(weights=weights).to(self.device).eval()
+        # self.object_preprocess = weights.transforms()
+        # مدل رو بدون pretrained اولیه بساز
+        self.schp_model = resnet101(pretrained=None, num_classes=20)
+
+        # چک‌پوینت آموزش‌دیده رو لود کن
+        checkpoint = torch.load("backend/schp/checkpoints/exp-schp-201908301523-atr.pth", map_location=self.device)
+        self.schp_model.load_state_dict(checkpoint['state_dict'])
+
+        # مدل رو ببر روی GPU یا CPU و eval کن
+        self.schp_model.to(self.device).eval()
+
 
         # Keypoint
         kp_weights = KeypointRCNN_ResNet50_FPN_Weights.COCO_V1
@@ -142,29 +175,77 @@ class Command(BaseCommand):
             transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
         ])
 
+    # def _detect_products(self, image_path, style_id):
+    #     image = Image.open(image_path).convert('RGB')
+    #     tensor = self.object_preprocess(image).to(self.device)
+    #     with torch.no_grad():
+    #         preds = self.object_model([tensor])[0]
+
+    #     detected = []
+    #     for i, score in enumerate(preds['scores']):
+    #         if score < 0.8: continue
+    #         box = preds['boxes'][i].cpu().numpy().astype(int)
+    #         crop = image.crop((box[0], box[1], box[2], box[3]))
+    #         label = int(preds['labels'][i].item())
+    #         category_name = str(label)
+            
+    #         # --- مسیر ذخیره ---
+    #         crop_dir = os.path.join(settings.MEDIA_ROOT, "style_crops", str(style_id))
+    #         os.makedirs(crop_dir, exist_ok=True)
+    #         crop_filename = f"crop_{i+1}.jpg"
+    #         crop_path = os.path.join(crop_dir, crop_filename)
+    #         crop.save(crop_path)
+            
+    #         detected.append({'image_crop': crop, 'bounding_box': box.tolist(), 'category_name': category_name})
+    #     return detected
+    
     def _detect_products(self, image_path, style_id):
-        image = Image.open(image_path).convert('RGB')
-        tensor = self.object_preprocess(image).to(self.device)
+        image = Image.open(image_path).convert("RGB")
+        preprocess = transforms.Compose([
+            transforms.Resize((512, 512)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225])
+        ])
+        inp = preprocess(image).unsqueeze(0).to(self.device)
+
         with torch.no_grad():
-            preds = self.object_model([tensor])[0]
+            out = self.schp_model(inp)[0]
+            parsing = out.squeeze(0).cpu().numpy().argmax(0)  # segmentation mask
+
+        # کلاس‌های معروف
+        label_map = {
+            1: "hat", 2: "hair", 3: "sunglasses", 4: "upper-clothes",
+            6: "pants", 7: "dress", 8: "belt", 9: "left-shoe", 10: "right-shoe",
+            11: "socks", 12: "sunglasses"
+        }
 
         detected = []
-        for i, score in enumerate(preds['scores']):
-            if score < 0.8: continue
-            box = preds['boxes'][i].cpu().numpy().astype(int)
-            crop = image.crop((box[0], box[1], box[2], box[3]))
-            label = int(preds['labels'][i].item())
-            category_name = str(label)
-            
-            # --- مسیر ذخیره ---
+        np_img = np.array(image)
+
+        for label, name in label_map.items():
+            mask = (parsing == label).astype(np.uint8) * 255
+            if mask.sum() == 0:
+                continue
+
+            # جدا کردن لباس
+            clothing = cv2.bitwise_and(np_img, np_img, mask=mask)
+
+            # ذخیره‌سازی
             crop_dir = os.path.join(settings.MEDIA_ROOT, "style_crops", str(style_id))
             os.makedirs(crop_dir, exist_ok=True)
-            crop_filename = f"crop_{i+1}.jpg"
+            crop_filename = f"{name}.png"
             crop_path = os.path.join(crop_dir, crop_filename)
-            crop.save(crop_path)
-            
-            detected.append({'image_crop': crop, 'bounding_box': box.tolist(), 'category_name': category_name})
+            cv2.imwrite(crop_path, cv2.cvtColor(clothing, cv2.COLOR_RGB2BGR))
+
+            detected.append({
+                "image_crop": Image.fromarray(clothing),
+                "bounding_box": None,
+                "category_name": name
+            })
+
         return detected
+
 
     def _generate_embedding(self, img_input):
         img = Image.open(img_input).convert('RGB') if isinstance(img_input,str) else img_input
@@ -195,20 +276,37 @@ class Command(BaseCommand):
 
         with torch.no_grad():
             feat = self.feature_extractor(t).squeeze(-1).squeeze(-1)  # (2048,)
+            
+            # Gender, Age
+            try:
+                # ساخت مدل سبک‌تر
+                model = DeepFace.build_model("Facenet")
 
-            # gender
-            gender_out = self.gender_model(feat.unsqueeze(0))
-            gender = ['female', 'male'][torch.argmax(gender_out).item()]
+                analysis = DeepFace.analyze(
+                    img_path=img_input,
+                    actions=['age','gender'],
+                    enforce_detection=False,
+                    detector_backend='retinaface',
+                    models={"age": model, "gender": model}
+                )
+                age = analysis[0]['age']
+                gender = analysis[0]['gender'].lower()
+            except Exception as e:
+                gender_out = self.gender_model(feat.unsqueeze(0))
+                gender = ['female', 'male'][torch.argmax(gender_out).item()]
+                age_out = self.age_model(feat.unsqueeze(0))
+                age = float(age_out.item())
+                print("DeepFace failed:", e)
 
-            # age
-            age_out = self.age_model(feat.unsqueeze(0))
-            print(age_out)
-            age = float(age_out.item())
+            # Mediapipe → skin tone
+            try:
+                skin_color = estimate_skin_color(img_input)
+            except Exception as e:
+                skin_out = self.skin_model(feat.unsqueeze(0))   # (1,3)
+                skin_out = skin_out.squeeze().detach().cpu().numpy()  # → (3,)
+                skin_color = f"rgb{tuple(int(x) for x in skin_out.tolist())}"
+                print("Skin color failed:", e)
 
-            # skin color (RGB)
-            skin_out = self.skin_model(feat.unsqueeze(0))   # (1,3)
-            skin_out = skin_out.squeeze().detach().cpu().numpy()  # → (3,)
-            skin_color = f"rgb{tuple(int(x) for x in skin_out.tolist())}"
 
         # Keypoint for height/body_type
         kp_t = self.kp_preprocess(img).unsqueeze(0).to(self.device)
@@ -230,7 +328,8 @@ class Command(BaseCommand):
             patch = img_np[max(0, head_y - 40):head_y + 40, :, :]
             if patch.size > 0:
                 c = patch.mean(axis=(0, 1))
-                hair_color = f"rgb({int(c[0])},{int(c[1])},{int(c[2])})"
+                # hair_color = f"rgb({int(c[0])},{int(c[1])},{int(c[2])})"
+                hair_color = f"rgb({int(c[2])},{int(c[1])},{int(c[0])})"
 
         return {
             'gender': gender,
