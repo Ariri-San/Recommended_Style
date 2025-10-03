@@ -3,6 +3,7 @@ from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
 
+
 import os
 from PIL import Image
 import numpy as np
@@ -16,8 +17,9 @@ from torchvision.models.detection import keypointrcnn_resnet50_fpn, KeypointRCNN
 from sklearn.metrics.pairwise import cosine_similarity
 import torch.nn as nn
 import torch.nn.functional as F_torch
-from deepface import DeepFace
-import mediapipe as mp
+from collections import OrderedDict
+# from deepface import DeepFace
+# import mediapipe as mp
 
 from schp.networks import resnet101
 from get_data.models import Style, Product, StylePredict, Category, ProductPredict
@@ -141,12 +143,21 @@ class Command(BaseCommand):
         # weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT
         # self.object_model = fasterrcnn_resnet50_fpn(weights=weights).to(self.device).eval()
         # self.object_preprocess = weights.transforms()
+        
         # مدل رو بدون pretrained اولیه بساز
-        self.schp_model = resnet101(pretrained=None, num_classes=20)
+        self.schp_model = resnet101(pretrained=None, num_classes=18)
 
         # چک‌پوینت آموزش‌دیده رو لود کن
+        
+        # حذف "module." از کلیدهای state_dict
         checkpoint = torch.load("backend/schp/checkpoints/exp-schp-201908301523-atr.pth", map_location=self.device)
-        self.schp_model.load_state_dict(checkpoint['state_dict'])
+        state_dict = checkpoint["state_dict"]
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            name = k.replace("module.", "")  # پاک کردن module.
+            new_state_dict[name] = v
+
+        self.schp_model.load_state_dict(new_state_dict, strict=False)
 
         # مدل رو ببر روی GPU یا CPU و eval کن
         self.schp_model.to(self.device).eval()
@@ -201,6 +212,8 @@ class Command(BaseCommand):
     
     def _detect_products(self, image_path, style_id):
         image = Image.open(image_path).convert("RGB")
+        np_img = np.array(image)
+        
         preprocess = transforms.Compose([
             transforms.Resize((512, 512)),
             transforms.ToTensor(),
@@ -210,26 +223,37 @@ class Command(BaseCommand):
         inp = preprocess(image).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
-            out = self.schp_model(inp)[0]
-            parsing = out.squeeze(0).cpu().numpy().argmax(0)  # segmentation mask
+            out = self.schp_model(inp)
+
+            # اگر خروجی لیست تو در تو بود، باز کن تا به تنسور برسی
+            if isinstance(out, (list, tuple)):
+                # برو سراغ اولین لیست
+                out = out[0]
+                if isinstance(out, (list, tuple)):
+                    out = out[0]   # اولین تنسور داخل لیست
+            # الان out یک Tensor هست
+            parsing = out.squeeze(0).cpu().numpy().argmax(0)
 
         # کلاس‌های معروف
         label_map = {
-            1: "hat", 2: "hair", 3: "sunglasses", 4: "upper-clothes",
+            1: "hat", 3: "sunglasses", 4: "upper-clothes",
             6: "pants", 7: "dress", 8: "belt", 9: "left-shoe", 10: "right-shoe",
-            11: "socks", 12: "sunglasses"
+            12: "sunglasses"
         }
 
         detected = []
-        np_img = np.array(image)
+        H, W, _ = np_img.shape
 
         for label, name in label_map.items():
             mask = (parsing == label).astype(np.uint8) * 255
             if mask.sum() == 0:
                 continue
+            
+            # ری‌سایز ماسک به اندازه تصویر اصلی
+            mask_resized = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
 
             # جدا کردن لباس
-            clothing = cv2.bitwise_and(np_img, np_img, mask=mask)
+            clothing = cv2.bitwise_and(np_img, np_img, mask=mask_resized)
 
             # ذخیره‌سازی
             crop_dir = os.path.join(settings.MEDIA_ROOT, "style_crops", str(style_id))
