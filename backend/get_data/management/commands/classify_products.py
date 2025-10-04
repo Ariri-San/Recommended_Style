@@ -78,13 +78,13 @@ class Command(BaseCommand):
 
         for product in qs:
             try:
-                t_label, t_score, c_label, c_score, elapsed = classifier.predict(
+                classifier_predict = classifier.predict(
                     image_url=product.image,
                     type_labels=type_labels,
                     color_labels=color_labels,
                 )
                 # save image under type-based folder
-                safe_type = re.sub(r"[^a-z0-9_-]+", "-", (t_label or "unknown").lower())
+                safe_type = re.sub(r"[^a-z0-9_-]+", "-", (classifier_predict["type_label"] or "unknown").lower())
                 # reuse existing local file if present; otherwise download once
                 if product.image_local and product.image_local.name and default_storage.exists(product.image_local.name):
                     local_path = product.image_local.name
@@ -97,8 +97,8 @@ class Command(BaseCommand):
                     )
 
                 # map labels back to FKs if possible
-                predicted_category = next((c for c in categories if c.title == t_label), None)
-                predicted_color_obj = next((c for c in colors if c.title == c_label), None) if colors else None
+                predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                predicted_color_obj = next((c for c in colors if c.title == classifier_predict["c_label"]), None) if colors else None
 
                 product.image_local.name = local_path
                 
@@ -108,9 +108,9 @@ class Command(BaseCommand):
                     predict = ProductPredict(product=product, version=version)
                 
                 predict.category = predicted_category
-                predict.category_score = t_score
+                predict.category_score = classifier_predict["type_score"]
                 predict.color = predicted_color_obj
-                predict.color_score = c_score
+                predict.color_score = classifier_predict["color_score"]
                 predict.classification_model = "open_clip ViT-B-32 laion2b_s34b_b79k"
                 predict.classified_at = timezone.now()
                 # save embedding
@@ -124,10 +124,10 @@ class Command(BaseCommand):
                 predict.save()
                 
                 num_ok += 1
-                total_image_time += elapsed
+                total_image_time += classifier_predict["elapsed"]
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"OK #{product.id}: category={t_label}({t_score:.2f}) color={c_label}({c_score:.2f}) time={elapsed}"
+                        f"OK #{product.id}: category={classifier_predict["type_label"]}({classifier_predict["type_score"]:.2f}) color={classifier_predict["color_label"]}({classifier_predict["color_score"]:.2f}) time={classifier_predict["elapsed"]}"
                     )
                 )
             except Exception as e:

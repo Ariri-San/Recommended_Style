@@ -23,7 +23,8 @@ from collections import OrderedDict
 # import mediapipe as mp
 
 from schp.networks import resnet101
-from get_data.models import Style, Product, StylePredict, Category, ProductPredict
+from get_data.scripts.torch_classifier import ClipZeroShotClassifier
+from get_data.models import Style, Product, StylePredict, Category, ProductPredict, Color
 
 # --- Classifiers ---
 class GenderClassifier(nn.Module):
@@ -121,24 +122,44 @@ class Command(BaseCommand):
                     style.save()
                 
                 for idx, prod_info in enumerate(detected_products_info):
-                    crop_embedding, crop_dim = self._generate_embedding(prod_info['image_crop'])
-                    similar_products = self._find_similar_products(crop_embedding, crop_dim, prod_info.get('category_name'))
+                    # Use Category titles as type labels
+                    categories = list(Category.objects.all().order_by("title"))
+                    type_labels = [c.title for c in categories]
+                    # Use Color titles as color labels (fallback to defaults if table empty)
+                    colors = list(Color.objects.all().order_by("title"))
+                    color_labels = [c.title for c in colors]
+                    
+                    classifier_predict = self.classifier.predict(
+                        image_url=prod_info['crop_path'],
+                        type_labels=type_labels,
+                        color_labels=color_labels,
+                    )
+                    # print(len(categories))
+                    # print(classifier_predict["type_probs"])
+                    predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                    embedding = self.classifier.encode_image(prod_info['crop_path'])
+                    image_embedding = embedding.tolist()
+                    similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category)
 
-                    sp = StylePredict.objects.create(
+                    style_predict = StylePredict.objects.create(
                         style=style,
                         version=version,
-                        prediction_model='FasterRCNN_ResNet50_FPN + ResNet50',
+                        category=predicted_category,
+                        prediction_model='ViT-B-32 laion2b_s34b_b79k',
                         predicted_at=timezone.now(),
                         crop_image=prod_info['crop_path'],
-                        image_embedding=json.dumps(crop_embedding.tolist()),
-                        image_embedding_dim=crop_dim,
+                        image_embedding=json.dumps(image_embedding),
+                        image_embedding_dim=len(categories),
                         crop_meta=json.dumps({
                             'bounding_box': prod_info['bounding_box'],
                         })
                     )
 
                     if similar_products:
-                        sp.products.set(similar_products)
+                        style_predict.products.set(similar_products)
+                    else:
+                        style_predict.products.set([])
+                    style_predict.save()
 
                 # Update Style level info (mean or first crop)
 
@@ -178,6 +199,8 @@ class Command(BaseCommand):
         resnet = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
         self.feature_extractor = nn.Sequential(*(list(resnet.children())[:-1])).to(self.device).eval()
         feat_dim = 2048
+        
+        self.classifier = ClipZeroShotClassifier(device=self.device)
 
         # Attribute models
         self.gender_model = GenderClassifier(feat_dim).to(self.device).eval()
@@ -312,18 +335,20 @@ class Command(BaseCommand):
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]
 
-    def _find_similar_products(self, query_emb, emb_dim, category_name=None):
-        qs = ProductPredict.objects.all() if not category_name else ProductPredict.objects.filter(category__title__iexact=category_name)
+    def _find_similar_products(self, query_emb, emb_dim, category=None):
+        product_predicts = ProductPredict.objects.all() if not category else ProductPredict.objects.filter(category=category)
         db_embs = []
         db_products = []
-        for pp in qs:
-            if pp.image_embedding and pp.image_embedding_dim == emb_dim:
+        for product_predict in product_predicts:
+            if product_predict.image_embedding and product_predict.image_embedding_dim == emb_dim:
+                # print(product_predict.image_embedding_dim)
+                # print(emb_dim)
                 try:
-                    e = json.loads(pp.image_embedding)
-                    db_embs.append(e)
-                    db_products.append(pp.product)
+                    db_embs.append(product_predict.image_embedding)
+                    db_products.append(product_predict.product)
                 except: continue
         if not db_embs: return []
+        
         sims = cosine_similarity([query_emb], np.array(db_embs))[0]
         top_idx = sims.argsort()[-10:][::-1]
         return [db_products[i] for i in top_idx]

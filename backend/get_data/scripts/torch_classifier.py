@@ -1,4 +1,5 @@
 import io
+import os
 import time
 from typing import List, Tuple
 
@@ -8,6 +9,8 @@ import torch
 import torchvision.transforms as T
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+
+from get_data.scripts.color_classifier import ClipColorClassifier
 
 
 class ClipZeroShotClassifier:
@@ -29,9 +32,12 @@ class ClipZeroShotClassifier:
         self.model.to(self.device)
 
     def _download_image(self, url: str) -> Image.Image:
-        resp = requests.get(url, timeout=20)
-        resp.raise_for_status()
-        return Image.open(io.BytesIO(resp.content)).convert("RGB")
+        if os.path.exists(url):
+            return Image.open(url).convert("RGB")
+        else:
+            resp = requests.get(url, timeout=20)
+            resp.raise_for_status()
+            return Image.open(io.BytesIO(resp.content)).convert("RGB")
 
     def encode_image(self, image_url: str) -> torch.Tensor:
         image = self._download_image(image_url)
@@ -44,6 +50,7 @@ class ClipZeroShotClassifier:
     def predict(self, image_url: str, type_labels: List[str], color_labels: List[str]) -> Tuple[str, float, str, float, float]:
         start_ts = time.time()
         image = self._download_image(image_url)
+        
         image_t = self.preprocess(image).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
@@ -60,12 +67,19 @@ class ClipZeroShotClassifier:
             type_score = float(type_probs[type_idx].item())
 
             # Color (via dedicated color classifier for separation of concerns)
-            from get_data.scripts.color_classifier import ClipColorClassifier
             color_classifier = ClipColorClassifier(device=self.device)
             color_label, color_score = color_classifier.predict_from_features(image_features, color_labels)
 
         elapsed = time.time() - start_ts
-        return type_label, type_score, color_label, color_score, elapsed
+        
+        return {
+            "type_label": type_label,
+            "type_score": type_score,
+            "color_label": color_label,
+            "color_score": color_score,
+            "elapsed": elapsed,
+            "type_probs": type_probs,
+        }
 
     def download_to_media(self, image_url: str, subdir: str, filename_stem: str = None, overwrite: bool = True) -> str:
         resp = requests.get(image_url, timeout=20)

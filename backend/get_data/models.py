@@ -99,6 +99,7 @@ class Style(models.Model):
 
 class StylePredict(models.Model):
     style = models.ForeignKey(Style, on_delete=models.CASCADE, related_name='predicts')
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='style_predicts')
     products = models.ManyToManyField(Product, related_name='style_predicts')
     version = models.IntegerField(default=1)
     image_embedding = models.JSONField(null=True, blank=True)
@@ -117,4 +118,3 @@ class StylePredict(models.Model):
 
     def __str__(self):
         return f"{self.version}:{self.style.title}"
-
