@@ -55,10 +55,15 @@ class StyleAdmin(admin.ModelAdmin):
 
 @admin.register(models.StylePredict)
 class StylePredictAdmin(admin.ModelAdmin):
-    list_display = ["style", "version"]
-    readonly_fields = ['thumbnail']
+    list_display = ["version", "last_update", "style"]
+    readonly_fields = ['crop_thumbnail', 'thumbnail']
 
     def thumbnail(self, instance):
         if instance.style.image != '':
             return format_html(f'<img src="{instance.style.image}" class="thumbnail" />')
+        return ''
+    
+    def crop_thumbnail(self, instance):
+        if instance.crop_image != '':
+            return format_html(f'<img src="{instance.crop_image.url}" class="thumbnail" />')
         return ''

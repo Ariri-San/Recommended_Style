@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 
 
+import shutil
 import os
 from PIL import Image
 import numpy as np
@@ -96,7 +97,11 @@ class Command(BaseCommand):
 
             image_path = style.image_local.path
             self.stdout.write(f"Processing Style {style.id}")
-            detected_products_info = self._detect_products(image_path, style.id)
+            crop_dir = os.path.join(settings.MEDIA_ROOT, "styles/crops", str(style.id))
+            if os.path.exists(crop_dir):
+                shutil.rmtree(crop_dir)  # حذف کل پوشه و محتویات
+            os.makedirs(crop_dir, exist_ok=True)
+            detected_products_info = self._detect_products(image_path, crop_dir)
 
             full_embedding, full_dim = self._generate_embedding(image_path)
 
@@ -124,6 +129,7 @@ class Command(BaseCommand):
                         version=version,
                         prediction_model='FasterRCNN_ResNet50_FPN + ResNet50',
                         predicted_at=timezone.now(),
+                        crop_image=prod_info['crop_path'],
                         image_embedding=json.dumps(crop_embedding.tolist()),
                         image_embedding_dim=crop_dim,
                         crop_meta=json.dumps({
@@ -210,10 +216,11 @@ class Command(BaseCommand):
     #         detected.append({'image_crop': crop, 'bounding_box': box.tolist(), 'category_name': category_name})
     #     return detected
     
-    def _detect_products(self, image_path, style_id):
+    def _detect_products(self, image_path, crop_dir):
         image = Image.open(image_path).convert("RGB")
         np_img = np.array(image)
-        
+        H, W, _ = np_img.shape
+
         preprocess = transforms.Compose([
             transforms.Resize((512, 512)),
             transforms.ToTensor(),
@@ -224,51 +231,78 @@ class Command(BaseCommand):
 
         with torch.no_grad():
             out = self.schp_model(inp)
-
-            # اگر خروجی لیست تو در تو بود، باز کن تا به تنسور برسی
             if isinstance(out, (list, tuple)):
-                # برو سراغ اولین لیست
                 out = out[0]
                 if isinstance(out, (list, tuple)):
-                    out = out[0]   # اولین تنسور داخل لیست
-            # الان out یک Tensor هست
+                    out = out[0]
             parsing = out.squeeze(0).cpu().numpy().argmax(0)
 
-        # کلاس‌های معروف
-        label_map = {
-            1: "hat", 3: "sunglasses", 4: "upper-clothes",
-            6: "pants", 7: "dress", 8: "belt", 9: "left-shoe", 10: "right-shoe",
-            12: "sunglasses"
+        # دسته‌ها
+        label_groups = {
+            "hat": [1],
+            "sunglasses": [3],
+            "upper-clothes": [4],
+            "pants": [6],
+            "dress": [7],
+            "belt": [8],
+            "shoes": [9, 10],
         }
 
-        detected = []
-        H, W, _ = np_img.shape
+        min_pixels_by_class = {
+            "sunglasses": 100,
+            "hat": 300,
+        }
+        default_min_pixels = 100
 
-        for label, name in label_map.items():
-            mask = (parsing == label).astype(np.uint8) * 255
+        detected = []
+
+        for cname, labels in label_groups.items():
+            mask = np.zeros_like(parsing, dtype=np.uint8)
+            for lb in labels:
+                mask = mask | (parsing == lb).astype(np.uint8)
+
             if mask.sum() == 0:
                 continue
-            
-            # ری‌سایز ماسک به اندازه تصویر اصلی
-            mask_resized = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
 
-            # جدا کردن لباس
-            clothing = cv2.bitwise_and(np_img, np_img, mask=mask_resized)
+            # Resize به اندازه تصویر اصلی
+            mask_resized = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST).astype(np.uint8)
+            mask_resized = (mask_resized * 255).astype(np.uint8)
 
-            # ذخیره‌سازی
-            crop_dir = os.path.join(settings.MEDIA_ROOT, "style_crops", str(style_id))
-            os.makedirs(crop_dir, exist_ok=True)
-            crop_filename = f"{name}.png"
+            pixel_count = int(np.count_nonzero(mask_resized))
+            min_pixels = min_pixels_by_class.get(cname, default_min_pixels)
+            if pixel_count < min_pixels:
+                self.stdout.write(f"Discarding {cname} (pixels={pixel_count} < {min_pixels})")
+                continue
+
+            # ---- dilation قبل از بریدن ----
+            kernel_size = 20 if cname == "shoes" else 5
+            kernel = np.ones((kernel_size, kernel_size), np.uint8)
+            mask_resized = cv2.dilate(mask_resized, kernel, iterations=1)
+
+            ys, xs = np.where(mask_resized > 0)
+            if len(xs) == 0 or len(ys) == 0:
+                continue
+
+            x1, x2 = xs.min(), xs.max()
+            y1, y2 = ys.min(), ys.max()
+
+            roi_img = np_img[y1:y2+1, x1:x2+1]
+            roi_mask = mask_resized[y1:y2+1, x1:x2+1]
+            clothing = cv2.bitwise_and(roi_img, roi_img, mask=roi_mask)
+
+            crop_filename = f"{cname}.png"
             crop_path = os.path.join(crop_dir, crop_filename)
             cv2.imwrite(crop_path, cv2.cvtColor(clothing, cv2.COLOR_RGB2BGR))
 
             detected.append({
+                "crop_path": crop_path,
                 "image_crop": Image.fromarray(clothing),
-                "bounding_box": None,
-                "category_name": name
+                "bounding_box": [int(x1), int(y1), int(x2), int(y2)],
+                "category_name": cname
             })
 
         return detected
+
 
 
     def _generate_embedding(self, img_input):
