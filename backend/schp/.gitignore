@@ -3,4 +3,4 @@
 data/
 log/
 pretrain_model/
-checkpoits/
+exp-schp-201908301523-atr.pth
