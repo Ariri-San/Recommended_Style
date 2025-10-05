@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from core.signals.remove_functions import delete_file_when_delete, delete_file_when_update
-from core.models import User, Notification, NotificationUser
+from core.models import User
 
 
 #  DELETE IMAGE OF  -- User --

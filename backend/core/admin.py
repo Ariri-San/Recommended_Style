@@ -1,14 +1,7 @@
-
-from django.urls import reverse, path
-from django.shortcuts import render, redirect
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
 from django.contrib import admin, messages
-from django.db.models.aggregates import Count
-
-from django.contrib.contenttypes.models import ContentType
-from django.utils.html import format_html, urlencode
 from . import models
 
 

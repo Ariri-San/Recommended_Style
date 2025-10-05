@@ -42,11 +42,12 @@ INSTALLED_APPS = [
     # App System   
     'rest_framework',
     'rest_framework_simplejwt',
-    'celery',
+    # 'celery',
     # 'debug_toolbar',
     'djoser',
     'django_filters',
     'corsheaders',
+    "colorfield",
     
     # Custom Apps
     "core",
@@ -142,6 +143,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+AUTH_USER_MODEL = 'core.User'
 
 
 REST_FRAMEWORK = {
