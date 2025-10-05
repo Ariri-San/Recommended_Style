@@ -1,4 +1,5 @@
 from ast import Dict
+from xxlimited import Null
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
@@ -35,7 +36,7 @@ class FindSimilarProducts:
         self._define_transforms()
     
     
-    def create_predict_from_crop(self, my_style: MyStyle, bbox: Dict) -> MyStylePredict:
+    def create_predict_from_crop(self, my_style: MyStyle, bbox: Dict, my_style_predict=None) -> MyStylePredict:
         start_time = time.time()
         
         x1, x2 = bbox["x1"], bbox["x2"]
@@ -83,17 +84,28 @@ class FindSimilarProducts:
         elapsed_seconds = time.time() - start_time
         elapsed_duration = timedelta(seconds=elapsed_seconds)
         # ایجاد MyStylePredict
-        style_predict = MyStylePredict.objects.create(
-            style=my_style,
-            category=predicted_category,
-            prediction_model='ViT-B-32 laion2b_s34b_b79k',
-            predict_elapsed=elapsed_duration,
-            crop_name=f"manual_crop_{x1}_{y1}_{x2}_{y2}",
-            crop_image=crop_path,
-            image_embedding=json.dumps(image_embedding),
-            image_embedding_dim=len(categories),
-            bounding_box=json.dumps({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
-        )
+        if my_style_predict and my_style_predict.style == my_style:
+            style_predict = MyStylePredict.objects.get(id=my_style_predict.id)
+            style_predict.category = predicted_category
+            style_predict.predict_elapsed = elapsed_duration
+            style_predict.crop_name = f"manual_crop_{x1}_{y1}_{x2}_{y2}"
+            style_predict.crop_image = crop_path
+            style_predict.image_embedding = json.dumps(image_embedding)
+            style_predict.image_embedding_dim = len(categories)
+            style_predict.crop_meta = json.dumps({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+            style_predict.save()
+        else:
+            style_predict = MyStylePredict.objects.create(
+                style=my_style,
+                category=predicted_category,
+                prediction_model='ViT-B-32 laion2b_s34b_b79k',
+                predict_elapsed=elapsed_duration,
+                crop_name=f"manual_crop_{x1}_{y1}_{x2}_{y2}",
+                crop_image=crop_path,
+                image_embedding=json.dumps(image_embedding),
+                image_embedding_dim=len(categories),
+                bounding_box=json.dumps({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+            )
         
         style_predict.detected_products.set(similar_products)
         
@@ -101,7 +113,6 @@ class FindSimilarProducts:
         
         return style_predict
         
-    
     
     def extract_image(self, my_style: MyStyle) -> list[MyStylePredict]:
         print(f"Processing Style {my_style.id}")
