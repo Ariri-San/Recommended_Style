@@ -7,6 +7,7 @@ import requests
 from PIL import Image
 import torch
 import torchvision.transforms as T
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
@@ -32,12 +33,26 @@ class ClipZeroShotClassifier:
         self.model.to(self.device)
 
     def _download_image(self, url: str) -> Image.Image:
+        """
+        Load image either from a local file path or an HTTP(S) URL.
+        """
+        # اگر مسیر، فایل واقعی روی سیستم باشد
         if os.path.exists(url):
             return Image.open(url).convert("RGB")
-        else:
+
+        # اگر مسیر نسبی (مثلاً media/my_styles/...) باشد
+        local_path = os.path.join(settings.MEDIA_ROOT, url)
+        if os.path.exists(local_path):
+            return Image.open(local_path).convert("RGB")
+
+        # در غیر این صورت فرض بر این است که URL واقعی است
+        if url.startswith("http://") or url.startswith("https://"):
             resp = requests.get(url, timeout=20)
             resp.raise_for_status()
             return Image.open(io.BytesIO(resp.content)).convert("RGB")
+
+        # اگر هیچ‌کدام از حالت‌ها نبود
+        raise FileNotFoundError(f"Cannot find image at '{url}'")
 
     def encode_image(self, image_url: str) -> torch.Tensor:
         image = self._download_image(image_url)

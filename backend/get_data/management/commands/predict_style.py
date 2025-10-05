@@ -23,8 +23,9 @@ from collections import OrderedDict
 # import mediapipe as mp
 
 from schp.networks import resnet101
+from get_data.scripts.detect_products import FindSimilarProducts
 from get_data.scripts.torch_classifier import ClipZeroShotClassifier
-from get_data.models import Style, Product, StylePredict, Category, ProductPredict, Color
+from get_data.models import MyStyle, Style, Product, StylePredict, Category, ProductPredict, Color
 
 # --- Classifiers ---
 class GenderClassifier(nn.Module):
@@ -164,6 +165,12 @@ class Command(BaseCommand):
                 # Update Style level info (mean or first crop)
 
             self.stdout.write(f"Finished Style {style.id}")
+    
+    def handle(self, *args, **options):
+        find_simslar = FindSimilarProducts()
+        # find_simslar.extract_image(MyStyle.objects.get(id=1))
+        find_simslar.create_predict_from_crop(MyStyle.objects.get(id=1), {"x1": 1375, "y1": 2386, "x2": 2758, "y2": 4371})
+        
 
     def _load_models(self):
         # Object detection

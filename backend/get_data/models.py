@@ -1,5 +1,6 @@
 from sys import version
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 
@@ -73,7 +74,7 @@ class ProductPredict(models.Model):
 
 class Style(models.Model):
     site = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='styles')
-    id_object = models.PositiveBigIntegerField(unique=True)
+    id_object = models.PositiveBigIntegerField()
     title = models.CharField(max_length=511)
     image = models.URLField()
     url = models.URLField(blank=True)
@@ -100,11 +101,12 @@ class Style(models.Model):
 class StylePredict(models.Model):
     style = models.ForeignKey(Style, on_delete=models.CASCADE, related_name='predicts')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='style_predicts')
+    crop_name = models.CharField(max_length=127, null=True, blank=True)
     products = models.ManyToManyField(Product, related_name='style_predicts')
     version = models.IntegerField(default=1)
     image_embedding = models.JSONField(null=True, blank=True)
     image_embedding_dim = models.IntegerField(null=True, blank=True)
-    prediction_model = models.CharField(max_length=64, null=True, blank=True)
+    prediction_model = models.CharField(max_length=127, null=True, blank=True)
     predicted_at = models.DateTimeField(null=True, blank=True)
     # NEW: store the crop image file for this StylePredict
     crop_image = models.ImageField(upload_to="styles/crops", null=True, blank=True)
@@ -118,3 +120,28 @@ class StylePredict(models.Model):
 
     def __str__(self):
         return f"{self.version}:{self.style.title}"
+
+
+
+class MyStyle(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_styles')
+    image = models.ImageField(upload_to="my_styles/images")
+
+
+class MyStylePredict(models.Model):
+    style = models.ForeignKey(MyStyle, on_delete=models.CASCADE, related_name='predicts')
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='my_style_predicts')
+    detected_products = models.ManyToManyField(Product, related_name='my_style_predicts')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='my_style_predicts_user')
+    crop_name = models.CharField(max_length=127)
+    crop_image = models.ImageField(upload_to="my_styles/crops", null=True, blank=True)
+    bounding_box = models.JSONField(null=True, blank=True)
+    image_embedding = models.JSONField(null=True, blank=True)
+    image_embedding_dim = models.IntegerField(null=True, blank=True)
+    prediction_model = models.CharField(max_length=127, null=True, blank=True)
+    predict_elapsed = models.DurationField(null=True, blank=True)
+    last_update = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.style.user.username}: {self.crop_name} -> {self.category.title}"
