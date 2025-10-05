@@ -139,7 +139,7 @@ class Command(BaseCommand):
                     predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
                     embedding = self.classifier.encode_image(prod_info['crop_path'])
                     image_embedding = embedding.tolist()
-                    similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category)
+                    similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
 
                     style_predict = StylePredict.objects.create(
                         style=style,
@@ -215,30 +215,7 @@ class Command(BaseCommand):
             transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
         ])
 
-    # def _detect_products(self, image_path, style_id):
-    #     image = Image.open(image_path).convert('RGB')
-    #     tensor = self.object_preprocess(image).to(self.device)
-    #     with torch.no_grad():
-    #         preds = self.object_model([tensor])[0]
 
-    #     detected = []
-    #     for i, score in enumerate(preds['scores']):
-    #         if score < 0.8: continue
-    #         box = preds['boxes'][i].cpu().numpy().astype(int)
-    #         crop = image.crop((box[0], box[1], box[2], box[3]))
-    #         label = int(preds['labels'][i].item())
-    #         category_name = str(label)
-            
-    #         # --- مسیر ذخیره ---
-    #         crop_dir = os.path.join(settings.MEDIA_ROOT, "style_crops", str(style_id))
-    #         os.makedirs(crop_dir, exist_ok=True)
-    #         crop_filename = f"crop_{i+1}.jpg"
-    #         crop_path = os.path.join(crop_dir, crop_filename)
-    #         crop.save(crop_path)
-            
-    #         detected.append({'image_crop': crop, 'bounding_box': box.tolist(), 'category_name': category_name})
-    #     return detected
-    
     def _detect_products(self, image_path, crop_dir):
         image = Image.open(image_path).convert("RGB")
         np_img = np.array(image)
@@ -335,7 +312,7 @@ class Command(BaseCommand):
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]
 
-    def _find_similar_products(self, query_emb, emb_dim, category=None):
+    def _find_similar_products(self, query_emb, emb_dim, category=None, top_n=30):
         product_predicts = ProductPredict.objects.all() if not category else ProductPredict.objects.filter(category=category)
         db_embs = []
         db_products = []
@@ -350,7 +327,7 @@ class Command(BaseCommand):
         if not db_embs: return []
         
         sims = cosine_similarity([query_emb], np.array(db_embs))[0]
-        top_idx = sims.argsort()[-10:][::-1]
+        top_idx = sims.argsort()[-top_n:][::-1]
         return [db_products[i] for i in top_idx]
 
     def _extract_personal_attributes(self, img_input):

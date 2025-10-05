@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html, urlencode
+from django.urls import reverse
 
 from . import models
 # Register your models here.
@@ -61,32 +62,41 @@ class StylePredictAdmin(admin.ModelAdmin):
     readonly_fields = ['crop_thumbnail', 'thumbnail', 'product_thumbnails']
     filter_horizontal = ("products",)
     
-    def product_thumbnails(self, instance):
+    def product_thumbnails(self, instance, num_rows=2):
         products = instance.products.all()
-        
-        if not products:
-            return "-"
-        
-        items = []
-        for p in products:
-            if p.image:
-                items.append(f"""
-                    <div style="
-                        display:flex;
-                        align-items:center;
-                        margin-bottom:8px;
-                        border:1px solid #eee;
-                        padding:6px;
-                        border-radius:8px;
-                        background-color:#fafafa;
-                    ">
-                        <img src="{p.image}" width="60" height="60" 
-                             style="object-fit:cover;border-radius:6px;margin-right:10px;" />
-                        <span style="font-size:14px;color:#333;">{p.name if hasattr(p, 'name') else str(p)}</span>
-                    </div>
-                """)
+        if not products.exists():
+            return "—"
 
-        return format_html("".join(items))
+        # تقسیم محصولات به ردیف‌ها
+        total = len(products)
+        rows = []
+        per_row = (total + num_rows - 1) // num_rows  # تقسیم مساوی
+
+        for i in range(0, total, per_row):
+            row = products[i:i + per_row]
+            items = []
+            for p in row:
+                if p.image:
+                    url = reverse("admin:get_data_product_change", args=[p.id])
+                    items.append(f"""
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            margin-bottom:8px;
+                            border:1px solid #eee;
+                            padding:6px;
+                            border-radius:8px;
+                            background-color:#fafafa;
+                        ">
+                            <a href="{url}" style="display:flex; align-items:center; text-decoration:none; color:inherit;">
+                                <img src="{p.image}" width="60" height="60" style="object-fit:cover;border-radius:6px;margin-right:10px;" />
+                                <span style="font-size:14px;color:#333;">{p.name if hasattr(p, 'name') else str(p)}</span>
+                            </a>
+                        </div>
+                    """)
+            rows.append(f'<div style="display:flex; flex-wrap:wrap; margin-bottom:4px; justify-content:space-around;">{"".join(items)}</div>')
+
+        return format_html("".join(rows))
 
     def thumbnail(self, instance):
         if instance.style.image_local != '':
