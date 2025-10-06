@@ -27,6 +27,7 @@ urlpatterns = [
     
     path('core/', include('core.urls')),
     path('api/', include('get_data.urls')),
+    path('likes/', include('likes.urls')),
     
 ]
 

@@ -1,6 +1,9 @@
-from sys import version
 from django.db import models
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericRelation
+
+from likes.models import LikedItem
+
 
 # Create your models here.
 
@@ -40,6 +43,8 @@ class Product(models.Model):
     image_local = models.ImageField(upload_to="products/none_group", null=True, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = GenericRelation(LikedItem)
 
     def __str__(self) -> str:
         return self.title
@@ -90,6 +95,8 @@ class Style(models.Model):
 
     last_update = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = GenericRelation(LikedItem)
 
     def __str__(self) -> str:
         return self.title
@@ -126,6 +133,8 @@ class StylePredict(models.Model):
 class MyStyle(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_styles')
     image = models.ImageField(upload_to="my_styles/images")
+    
+    likes = GenericRelation(LikedItem)
 
 
 class MyStylePredict(models.Model):
@@ -142,6 +151,9 @@ class MyStylePredict(models.Model):
     predict_elapsed = models.DurationField(null=True, blank=True)
     last_update = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = [["bounding_box", "style"]] 
 
     def __str__(self):
         return f"{self.style.user.username}: {self.crop_name} -> {self.category.title}"
