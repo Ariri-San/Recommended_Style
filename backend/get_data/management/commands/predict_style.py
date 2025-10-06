@@ -93,6 +93,15 @@ class Command(BaseCommand):
             qs = qs.filter(id__lte=end_id)
 
         for style in qs:
+            style_predicts = StylePredict.objects.filter(style=style, version=version)
+            if style_predicts.exists():
+                if options.get('refresh'):
+                    style_predicts.delete()
+                    self.stdout.write(f"StylePredict of Style {style.id} Deleted")
+                else:
+                    self.stdout.write(f"Style {style.id} Passed")
+                    continue
+                    
             if not style.image_local or not os.path.exists(style.image_local.path):
                 self.stdout.write(f"Skipping Style {style.id}, no image")
                 continue
@@ -108,19 +117,17 @@ class Command(BaseCommand):
             full_embedding, full_dim = self._generate_embedding(image_path)
 
             with transaction.atomic():
-                if options.get('refresh'):
-                    StylePredict.objects.filter(style=style, version=version).delete()
                 
-                personal_attr = self._extract_personal_attributes(image_path)
+                # personal_attr = self._extract_personal_attributes(image_path)
                 
-                if personal_attr:
-                    style.is_man = personal_attr['gender'] == 'male'
-                    style.age = personal_attr['age']
-                    style.skin_color = personal_attr['skin_color']
-                    style.hair_color = personal_attr['hair_color']
-                    style.height = personal_attr['height']
-                    style.body_type = personal_attr['body_type']
-                    style.save()
+                # if personal_attr:
+                #     style.is_man = personal_attr['gender'] == 'male'
+                #     style.age = personal_attr['age']
+                #     style.skin_color = personal_attr['skin_color']
+                #     style.hair_color = personal_attr['hair_color']
+                #     style.height = personal_attr['height']
+                #     style.body_type = personal_attr['body_type']
+                #     style.save()
                 
                 for idx, prod_info in enumerate(detected_products_info):
                     # Use Category titles as type labels
@@ -166,10 +173,10 @@ class Command(BaseCommand):
 
             self.stdout.write(f"Finished Style {style.id}")
     
-    def handle(self, *args, **options):
-        find_simslar = FindSimilarProducts()
-        # find_simslar.extract_image(MyStyle.objects.get(id=1))
-        find_simslar.create_predict_from_crop(MyStyle.objects.get(id=1), {"x1": 1375, "y1": 2386, "x2": 2758, "y2": 4371})
+    # def handle(self, *args, **options):
+    #     find_simslar = FindSimilarProducts()
+    #     # find_simslar.extract_image(MyStyle.objects.get(id=1))
+    #     find_simslar.create_predict_from_crop(MyStyle.objects.get(id=1), {"x1": 1375, "y1": 2386, "x2": 2758, "y2": 4371})
         
 
     def _load_models(self):

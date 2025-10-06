@@ -61,6 +61,7 @@ class StylePredictAdmin(admin.ModelAdmin):
     list_display = ["version", "last_update", "style"]
     readonly_fields = ['crop_thumbnail', 'thumbnail', 'product_thumbnails']
     filter_horizontal = ("products",)
+    list_filter = ['style']
     
     def product_thumbnails(self, instance, num_rows=2):
         products = instance.products.all()
@@ -127,6 +128,7 @@ class MyStylePredictAdmin(admin.ModelAdmin):
     list_display = ["id", "last_update", "style"]
     readonly_fields = ['crop_thumbnail', 'thumbnail', 'product_thumbnails']
     filter_horizontal = ("detected_products",)
+    list_filter = ['style']
     
     def product_thumbnails(self, instance, num_rows=2):
         products = instance.detected_products.all()
