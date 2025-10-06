@@ -49,10 +49,12 @@ INSTALLED_APPS = [
     'corsheaders',
     "colorfield",
     
+    
     # Custom Apps
+    "schp",
     "core",
     "get_data",
-    "schp",
+    "likes",
 ]
 
 MIDDLEWARE = [

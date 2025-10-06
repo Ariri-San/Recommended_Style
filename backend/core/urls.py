@@ -5,6 +5,8 @@ from .routers import CustomRouter
 from . import views
 
 
-# urlpatterns += [
-#     path('cities/<province_id>/', views.get_cities_by_id, name="cities-id-list"),
-# ]
+router = CustomRouter()
+router.add_custom_root('models', views.ContentTypeAPIView.as_view(), 'models-list')
+
+
+urlpatterns = router.urls

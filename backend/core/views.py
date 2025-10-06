@@ -24,6 +24,13 @@ from .permissions import IsAdminOrReadOnly
 
 
 
+class ContentTypeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(ContentType.objects.order_by("id").values("id", "app_label", "model").all())
+
+
 
 # class UserViewSet(ModelViewSet):
 #     serializer_class = settings.SERIALIZERS.user
