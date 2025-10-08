@@ -118,6 +118,7 @@ class CreateMyStyleSerializer(serializers.ModelSerializer):
     
     def update(self, my_style, validated_data):
         validated_data["user"] = self.context["request"].user
+        my_style = super().update(my_style ,validated_data)
         find_simslar = FindSimilarProducts()
         find_simslar.extract_image(my_style)
         return my_style

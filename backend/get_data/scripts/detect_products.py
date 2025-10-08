@@ -133,7 +133,6 @@ class FindSimilarProducts:
             shutil.rmtree(crop_dir)
         os.makedirs(crop_dir, exist_ok=True)
         
-        
         with transaction.atomic():
             MyStylePredict.objects.filter(style=my_style).delete()
             detected_products_info = self._detect_products(my_style.image, crop_dir)
@@ -264,8 +263,8 @@ class FindSimilarProducts:
             "belt": [8],
             "shoes": [9, 10],
         }
-        min_pixels_by_class = {"sunglasses": 100, "hat": 300}
-        default_min_pixels = 100
+        min_pixels_by_class = {"sunglasses": 300, "hat": 700}
+        default_min_pixels = 2000
         detected = []
 
         for cname, labels in label_groups.items():
@@ -280,6 +279,7 @@ class FindSimilarProducts:
 
             pixel_count = int(np.count_nonzero(mask_resized))
             if pixel_count < min_pixels_by_class.get(cname, default_min_pixels):
+                print(f"Discarding {cname} (pixels={pixel_count} < {default_min_pixels})")
                 continue
 
             kernel_size = 20 if cname == "shoes" else 5
@@ -312,9 +312,6 @@ class FindSimilarProducts:
             })
 
         return detected
-
-
-
 
 
     def _generate_embedding(self, img_input):

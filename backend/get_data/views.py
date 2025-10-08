@@ -84,7 +84,7 @@ class MyStyleViewSet(ModelViewSet):
         return models.MyStyle.objects.filter(user__is_show=True)
     
     def get_serializer_class(self):
-        if self.action in ["create", "update"]:
+        if self.request.method in ["POST", "PUT", "PATCH"]:
             return serializers.CreateMyStyleSerializer
         elif self.action == "retrieve":
             return serializers.MyStyleAndPredictSerializer
