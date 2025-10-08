@@ -1,5 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ExifTags
 from io import BytesIO
+import numpy as np
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.files import File
@@ -8,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 
 from colorfield.fields import ColorField
 
+from get_data.scripts.face_embedding import FaceEmbeddingExtractor
 from .validators import CustomUsernameValidator, validate_file_size
 
 
@@ -98,9 +101,45 @@ class User(AbstractUser):
     weight = models.DecimalField(max_digits=5, decimal_places=2, help_text='وزن کاربر', blank=True, null=True)
     hair_color = ColorField(blank=True, null=True, help_text='رنگ مو')
     skin_color = ColorField(blank=True, null=True, help_text='رنگ پوست')
+    birth_day = models.DateField(blank=True, null=True, help_text='تاریخ تولد')
+    image_embedding = models.BinaryField(null=True, blank=True)
     
     def save(self, *args, **kwargs):
-        self.image = compress_image(self.image)
+        if not self.image:
+            return super(User, self).save(*args, **kwargs)
+
+        face_embedding_extractor = FaceEmbeddingExtractor()
+
+        # فایل رو یکبار کامل بخون و کپی بگیر
+        self.image.seek(0)
+        img_bytes = self.image.read()
+
+        img_stream_1 = BytesIO(img_bytes)
+        img_stream_2 = BytesIO(img_bytes)
+
+        results = {}
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = {
+                executor.submit(face_embedding_extractor.get_embedding, img_stream_1): 'embedding',
+                executor.submit(compress_image, File(img_stream_2, name=self.image.name)): 'compressed'
+            }
+
+            for future in as_completed(futures):
+                task_name = futures[future]
+                try:
+                    result = future.result(timeout=60)
+                    results[task_name] = result
+                except Exception as e:
+                    print(f"Worker error in {task_name}: {e}")
+
+        if 'compressed' in results:
+            self.image = results['compressed']
+
+        if 'embedding' in results:
+            emb = np.asarray(results['embedding'], dtype=np.float32)
+            self.image_embedding = emb.tobytes()
+
         return super(User, self).save(*args, **kwargs)
     
     def __str__(self) -> str:

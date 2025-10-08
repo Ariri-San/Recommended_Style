@@ -12,12 +12,12 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 class UserUpdateSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'username', 'is_man', 'email', "image", "height", "weight", "hair_color", "skin_color"] 
+        fields = ['id', 'username', 'is_man', 'email', "image", "height", "weight", "hair_color", "skin_color", "birth_day"] 
 
 
 class UserSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'username', 'is_man', 'email', "image", "height", "weight", "hair_color", "skin_color"] 
+        fields = ['id', 'username', 'is_man', 'email', "image", "height", "weight", "hair_color", "skin_color", "birth_day", "image_embedding"] 
 
 
 class SimpleUserSerializer(BaseUserSerializer):

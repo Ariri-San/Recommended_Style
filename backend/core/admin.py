@@ -11,7 +11,7 @@ from . import models
 class CustomUserAdmin(UserAdmin):
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (_("Personal info"), {"fields": ("username", "image", "is_man")}),
+        (_("Personal info"), {"fields": ("username", "image", "is_man", "image_embedding")}),
         (_("Personal Sizes"), {"fields": ("height", "weight")}),
         (_("Personal Colors"), {"fields": ("hair_color", "skin_color")}),
         (
@@ -38,7 +38,8 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
-
+    
+    readonly_fields = ["image_embedding"]
     list_display = ("username", "email", "is_active", "is_staff", "date_joined")
     list_filter = ('is_active', 'is_staff', 'is_man')
     search_fields = ["username", "email"]

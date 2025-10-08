@@ -91,7 +91,7 @@ class FindSimilarProducts:
             style_predict.crop_image = crop_path
             style_predict.image_embedding = json.dumps(image_embedding)
             style_predict.image_embedding_dim = len(categories)
-            style_predict.crop_meta = json.dumps({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+            style_predict.bounding_box = json.dumps({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
             style_predict.save()
         else:
             style_predict = MyStylePredict.objects.create(
