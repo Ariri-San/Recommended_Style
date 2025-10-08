@@ -1,9 +1,17 @@
+from math import sqrt
+from datetime import timedelta
+from django.db.models import F, Value, BooleanField, FloatField
+from django.db.models.functions import Abs, Coalesce, Now
+from django.db.models import ExpressionWrapper, DurationField
+from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, APIView
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.viewsets import ModelViewSet, GenericViewSet, mixins
 from rest_framework.filters import SearchFilter, OrderingFilter
+
 from django_filters.rest_framework import DjangoFilterBackend
 
 from core.permissions import IsAdminOrReadOnly
@@ -98,7 +106,7 @@ class MyStylePredictViewSet(ModelViewSet):
 
 
 #  -----------  Custom Views ----------
-class CreateCropMyStylePredict(APIView):
+class CreateCropMyStylePredictView(APIView):
     serializer_class = serializers.CreateCropMyStylePredictSerializer
     permission_classes = [IsAuthenticated]
 
@@ -108,7 +116,7 @@ class CreateCropMyStylePredict(APIView):
         
         data = serializer.validated_data
         
-        my_style = models.MyStyle.objects.filter(id=data["style_id"])
+        my_style = models.MyStyle.objects.filter(id=data["style_id"], user=self.request.user)
         
         if my_style.exists():
             find_simslar = FindSimilarProducts()
@@ -126,7 +134,7 @@ class CreateCropMyStylePredict(APIView):
         return Response({"Style Not Found"}, status.HTTP_204_NO_CONTENT)
 
 
-class UpdateCropMyStylePredict(APIView):
+class UpdateCropMyStylePredictView(APIView):
     serializer_class = serializers.UpdateCropMyStylePredictSerializer
     permission_classes = [IsAuthenticated]
 
@@ -136,7 +144,7 @@ class UpdateCropMyStylePredict(APIView):
         
         data = serializer.validated_data
         
-        my_style_predict = models.MyStylePredict.objects.filter(id=data["predict_id"])
+        my_style_predict = models.MyStylePredict.objects.filter(id=data["predict_id"], style__user=self.request.user)
         
         if my_style_predict.exists():
             find_simslar = FindSimilarProducts()
@@ -152,5 +160,78 @@ class UpdateCropMyStylePredict(APIView):
             return Response(predict_serializer.data, status.HTTP_200_OK)
         
         return Response({"Predict Style Not Found"}, status.HTTP_204_NO_CONTENT)
-        
 
+
+
+def hex_to_rgb(hex_color):
+    """تبدیل #RRGGBB به (R, G, B)"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def color_distance(c1, c2):
+    """محاسبه فاصله اقلیدسی بین دو رنگ"""
+    r1, g1, b1 = hex_to_rgb(c1)
+    r2, g2, b2 = hex_to_rgb(c2)
+    return sqrt((r1 - r2)**2 + (g1 - g2)**2 + (b1 - b2)**2)     
+
+
+class RecommendedMyStyleView(APIView):
+    serializer_class = serializers.MyStyleAndPredictSerializer
+    permission_classes = [IsAuthenticated]
+
+    DEFAULTS = {
+        'height': 175,
+        'weight': 70,
+        'birth_day': timezone.now() - timedelta(days=25 * 365),
+        'hair_color': '#000000',   # سیاه
+        'skin_color': '#f1c27d',   # رنگ پوست متوسط
+    }
+
+    def similarity(self, style, user):
+        u = style.user
+
+        # داده‌های فرد در استایل
+        h = u.height or self.DEFAULTS['height']
+        w = u.weight or self.DEFAULTS['weight']
+        bd = u.birth_day or self.DEFAULTS['birth_day']
+        hc = u.hair_color or self.DEFAULTS['hair_color']
+        sc = u.skin_color or self.DEFAULTS['skin_color']
+
+        # داده‌های کاربر جاری
+        height = user.height or self.DEFAULTS['height']
+        weight = user.weight or self.DEFAULTS['weight']
+        birth_day = user.birth_day or self.DEFAULTS['birth_day']
+        hair_color = user.hair_color or self.DEFAULTS['hair_color']
+        skin_color = user.skin_color or self.DEFAULTS['skin_color']
+
+        age_diff = abs((birth_day - bd).days)
+        height_diff = abs(height - h)
+        weight_diff = abs(weight - w)
+        hair_diff = color_distance(hair_color, hc)
+        skin_diff = color_distance(skin_color, sc)
+
+        # محاسبه‌ی امتیاز شباهت
+        score = (
+            height_diff * 0.4 +
+            weight_diff * 0.3 +
+            age_diff * 0.001 +
+            hair_diff * 0.05 +
+            skin_diff * 0.05
+        )
+        return score
+
+    def get(self, request):
+        user = request.user
+
+        # استایل‌های قابل نمایش و هم‌جنس
+        qs = models.MyStyle.objects.select_related('user').filter(
+            user__is_man=user.is_man,
+            user__is_show=True
+        )
+
+        # مرتب‌سازی بر اساس شباهت
+        sorted_styles = sorted(qs, key=lambda s: self.similarity(s, user))
+
+        predict_serializer = self.serializer_class(instance=sorted_styles, many=True, context={"request": request})
+            
+        return Response(predict_serializer.data, status.HTTP_200_OK)
