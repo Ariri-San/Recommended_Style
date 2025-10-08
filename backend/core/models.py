@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from PIL import Image, ExifTags
 from io import BytesIO
+import json
 import numpy as np
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
@@ -102,7 +103,7 @@ class User(AbstractUser):
     hair_color = ColorField(blank=True, null=True, help_text='رنگ مو')
     skin_color = ColorField(blank=True, null=True, help_text='رنگ پوست')
     birth_day = models.DateField(blank=True, null=True, help_text='تاریخ تولد')
-    image_embedding = models.BinaryField(null=True, blank=True)
+    image_embedding = models.JSONField(null=True, blank=True)
     
     def save(self, *args, **kwargs):
         if not self.image:
@@ -137,8 +138,7 @@ class User(AbstractUser):
             self.image = results['compressed']
 
         if 'embedding' in results:
-            emb = np.asarray(results['embedding'], dtype=np.float32)
-            self.image_embedding = emb.tobytes()
+            self.image_embedding = json.dumps(results['embedding'].tolist())
 
         return super(User, self).save(*args, **kwargs)
     
