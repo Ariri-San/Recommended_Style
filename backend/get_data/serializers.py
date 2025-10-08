@@ -5,6 +5,7 @@ from django.db.models import Sum, Min, Max
 from rest_framework import serializers
 
 from core.serializers import UserSerializer, SimpleUserSerializer
+from .scripts.detect_products import FindSimilarProducts
 from . import models
 
 
@@ -111,6 +112,12 @@ class CreateMyStyleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
         my_style = super().create(validated_data)
+        find_simslar = FindSimilarProducts()
+        find_simslar.extract_image(my_style)
+        return my_style
+    
+    def update(self, my_style, validated_data):
+        validated_data["user"] = self.context["request"].user
         find_simslar = FindSimilarProducts()
         find_simslar.extract_image(my_style)
         return my_style

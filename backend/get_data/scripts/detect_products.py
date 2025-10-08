@@ -10,7 +10,7 @@ import shutil
 import os
 import time
 from datetime import timedelta
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 import json
 import torch
@@ -215,10 +215,12 @@ class FindSimilarProducts:
     
     
     def _open_imagefield(self, image_field):
-        """Open a Django ImageField (local or remote) safely and return a PIL Image."""
+        """Open a Django ImageField and apply EXIF orientation."""
         with image_field.open('rb') as f:
             img = Image.open(f)
-            img.load()  # ensure file fully read before closing
+            # Apply EXIF orientation to fix rotation
+            img = ImageOps.exif_transpose(img)
+            img.load()  # Ensure file is fully read before closing
         return img.convert("RGB")
     
     
