@@ -89,7 +89,7 @@ class FindSimilarProducts:
         image_embedding = embedding.tolist()
         
         # پیدا کردن محصولات مشابه
-        similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
+        similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
         
         elapsed_seconds = time.time() - start_time
         elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -127,18 +127,16 @@ class FindSimilarProducts:
     def extract_image(self, my_style: MyStyle) -> list[MyStylePredict]:
         print(f"Processing Style {my_style.id}")
         
+        # DElete Predicts of Style
+        crop_dir = os.path.join(settings.MEDIA_ROOT, "my_styles/crops", str(my_style.id))
+        if os.path.exists(crop_dir):
+            shutil.rmtree(crop_dir)
+        os.makedirs(crop_dir, exist_ok=True)
+        
+        
         with transaction.atomic():
-            # DElete Predicts of Style
-            crop_dir = os.path.join(settings.MEDIA_ROOT, "my_styles/crops", str(my_style.id))
-            if os.path.exists(crop_dir):
-                shutil.rmtree(crop_dir)
-            os.makedirs(crop_dir, exist_ok=True)
-            
+            MyStylePredict.objects.filter(style=my_style).delete()
             detected_products_info = self._detect_products(my_style.image, crop_dir)
-            
-            style_predicts = MyStylePredict.objects.filter(style=my_style)
-            if style_predicts.exists():
-                style_predicts.delete()
             
             for idx, prod_info in enumerate(detected_products_info):
                 start_time = time.time()
@@ -158,7 +156,7 @@ class FindSimilarProducts:
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
                 embedding = self.classifier.encode_image(prod_info['crop_path'])
                 image_embedding = embedding.tolist()
-                similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
+                similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
 
                 elapsed_seconds = time.time() - start_time
                 elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -326,8 +324,10 @@ class FindSimilarProducts:
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]
 
-    def _find_similar_products(self, query_emb, emb_dim, category=None, top_n=30):
-        product_predicts = ProductPredict.objects.all() if not category else ProductPredict.objects.filter(category=category)
+    def _find_similar_products(self, query_emb, emb_dim, category=None, is_man=None, top_n=30):
+        product_predicts = ProductPredict.objects.all() if not is_man else ProductPredict.objects.filter(product__is_man=is_man)
+        product_predicts = product_predicts if not category else product_predicts.filter(category=category)
+        
         db_embs = []
         db_products = []
         for product_predict in product_predicts:
