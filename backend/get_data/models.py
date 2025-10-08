@@ -131,7 +131,7 @@ class StylePredict(models.Model):
 
 
 class MyStyle(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_styles')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='my_styles')
     image = models.ImageField(upload_to="my_styles/images")
     
     likes = GenericRelation(LikedItem)

@@ -16,8 +16,8 @@ from get_data.scripts.color_classifier import ClipColorClassifier
 
 class ClipZeroShotClassifier:
     def __init__(self, device: str = None):
-        # self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.device = "cuda"
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = "cuda"
         # Lazy import to avoid heavy dependency if unused
         try:
             import open_clip

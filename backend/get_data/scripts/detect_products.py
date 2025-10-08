@@ -38,13 +38,24 @@ class FindSimilarProducts:
     def create_predict_from_crop(self, my_style: MyStyle, bbox: Dict, my_style_predict=None) -> MyStylePredict:
         start_time = time.time()
         
+        image = self._open_imagefield(my_style.image)
         x1, x2 = bbox["x1"], bbox["x2"]
         y1, y2 = bbox["y1"], bbox["y2"]
+        width, height = image.size
+
+        # محدود کردن مختصات به داخل مرز تصویر
+        x1 = max(0, min(x1, width))
+        y1 = max(0, min(y1, height))
+        x2 = max(0, min(x2, width))
+        y2 = max(0, min(y2, height))
+
+        # اطمینان از اینکه ناحیه مثبت است
+        if x2 <= x1 or y2 <= y1:
+            raise ValueError(f"Invalid crop box: ({x1}, {y1}, {x2}, {y2})")
         
         print(f"Processing Style {my_style.id} in [[{x1}, {y1}], [{x2}, {y2}]]")
         
         # crop کردن تصویر
-        image = self._open_imagefield(my_style.image)
         roi_img = np.array(image)[y1:y2+1, x1:x2+1]
         H, W, _ = roi_img.shape
         # ماسک کامل (همه سفید) برای پس‌زمینه شفاف

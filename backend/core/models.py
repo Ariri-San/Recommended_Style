@@ -104,6 +104,7 @@ class User(AbstractUser):
     skin_color = ColorField(blank=True, null=True, help_text='رنگ پوست')
     birth_day = models.DateField(blank=True, null=True, help_text='تاریخ تولد')
     image_embedding = models.JSONField(null=True, blank=True)
+    is_show = models.BooleanField(default=True)
     
     def save(self, *args, **kwargs):
         if not self.image:

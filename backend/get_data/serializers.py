@@ -108,6 +108,13 @@ class MyStyleSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'image', 'like', 'likes']
 
 class CreateMyStyleSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        validated_data["user"] = self.context["request"].user
+        my_style = super().create(validated_data)
+        find_simslar = FindSimilarProducts()
+        find_simslar.extract_image(my_style)
+        return my_style
+    
     class Meta:
         model = models.MyStyle
         fields = ['image']
@@ -115,14 +122,13 @@ class CreateMyStyleSerializer(serializers.ModelSerializer):
 
 #  ----------  MyStylePredict  ----------
 class MyStylePredictSerializer(serializers.ModelSerializer):
-    style = MyStyleSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     detected_products = ProductSerializer(many=True, read_only=True)
     product = ProductSerializer(read_only=True)
     
     class Meta:
         model = models.MyStylePredict
-        fields = ['id', 'style', 'category', 'detected_products', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'last_update', 'created_at']
+        fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'detected_products', 'last_update', 'created_at']
 
 class UpdateMyStylePredictSerializer(serializers.ModelSerializer):
     class Meta:
@@ -136,7 +142,6 @@ class SimpleMyStylePredictSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.MyStylePredict
         fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'last_update', 'created_at']
-
 
 
 
@@ -175,3 +180,23 @@ class MyStyleAndPredictSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.MyStyle
         fields = ['id', 'user', 'image', 'like', 'likes', 'predicts']
+
+class UpdateCropMyStylePredictSerializer(serializers.Serializer):
+    x1 = serializers.IntegerField()
+    y1 = serializers.IntegerField()
+    x2 = serializers.IntegerField()
+    y2 = serializers.IntegerField()
+    predict_id = serializers.IntegerField()
+    
+    class Meta:
+        fields = ['x1', 'y1', 'x2', 'y2', 'predict_id']
+
+class CreateCropMyStylePredictSerializer(serializers.Serializer):
+    x1 = serializers.IntegerField()
+    y1 = serializers.IntegerField()
+    x2 = serializers.IntegerField()
+    y2 = serializers.IntegerField()
+    style_id = serializers.IntegerField()
+    
+    class Meta:
+        fields = ['x1', 'y1', 'x2', 'y2', 'style_id']

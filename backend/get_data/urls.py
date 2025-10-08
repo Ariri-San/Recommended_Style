@@ -11,6 +11,8 @@ router.register('colors', views.ColorViewSet, basename='colors')
 router.register('products', views.ProductViewSet, basename='products')
 router.register('styles', views.StyleViewSet, basename='styles')
 router.register('my_styles', views.MyStyleViewSet, basename='my_styles')
+router.add_custom_root('create_style_predict', views.CreateCropMyStylePredict.as_view(), 'create_style_predict')
+router.add_custom_root('update_style_predict', views.UpdateCropMyStylePredict.as_view(), 'update_style_predict')
 
 
 styles_router = routers.NestedSimpleRouter(router, 'styles', lookup='style')
