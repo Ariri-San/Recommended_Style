@@ -54,17 +54,15 @@ class ClipZeroShotClassifier:
         # اگر هیچ‌کدام از حالت‌ها نبود
         raise FileNotFoundError(f"Cannot find image at '{url}'")
 
-    def encode_image(self, image_url: str) -> torch.Tensor:
-        image = self._download_image(image_url)
+    def encode_image(self, image: Image) -> torch.Tensor:
         image_t = self.preprocess(image).unsqueeze(0).to(self.device)
         with torch.no_grad():
             feats = self.model.encode_image(image_t)
             feats = feats / feats.norm(dim=-1, keepdim=True)
         return feats.squeeze(0).cpu()
 
-    def predict(self, image_url: str, type_labels: List[str], color_labels: List[str]) -> Tuple[str, float, str, float, float]:
+    def predict(self, image: Image, type_labels: List[str], color_labels: List[str]) -> Tuple[str, float, str, float, float]:
         start_ts = time.time()
-        image = self._download_image(image_url)
         
         image_t = self.preprocess(image).unsqueeze(0).to(self.device)
 

@@ -235,3 +235,21 @@ class RecommendedMyStyleView(APIView):
         predict_serializer = self.serializer_class(instance=sorted_styles, many=True, context={"request": request})
             
         return Response(predict_serializer.data, status.HTTP_200_OK)
+
+
+class TestPredictStyleView(APIView):
+    serializer_class = serializers.GetTestPredictStyleSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=self.request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        
+        find_simslar = FindSimilarProducts()
+        image = find_simslar._open_imagefield(data["image"])
+        predict = find_simslar.extract_test_image(image=image, is_man=data["is_man"], product_n=20)
+            
+        predict_serializer = serializers.ShowTestPredictStyleSerializer(instance=predict, many=True, context={"request": request})
+        
+        return Response(predict_serializer.data, status.HTTP_200_OK)

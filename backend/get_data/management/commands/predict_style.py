@@ -138,14 +138,14 @@ class Command(BaseCommand):
                     color_labels = [c.title for c in colors]
                     
                     classifier_predict = self.classifier.predict(
-                        image_url=prod_info['crop_path'],
+                        image=prod_info['image'],
                         type_labels=type_labels,
                         color_labels=color_labels,
                     )
                     # print(len(categories))
                     # print(classifier_predict["type_probs"])
                     predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
-                    embedding = self.classifier.encode_image(prod_info['crop_path'])
+                    embedding = self.classifier.encode_image(prod_info['image'])
                     image_embedding = embedding.tolist()
                     similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
 
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                         category=predicted_category,
                         prediction_model='ViT-B-32 laion2b_s34b_b79k',
                         predicted_at=timezone.now(),
-                        crop_image=prod_info['crop_path'],
+                        crop_image=prod_info['image'],
                         image_embedding=json.dumps(image_embedding),
                         image_embedding_dim=len(categories),
                         crop_meta=json.dumps({

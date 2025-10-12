@@ -208,3 +208,22 @@ class CreateCropMyStylePredictSerializer(serializers.Serializer):
     
     class Meta:
         fields = ['x1', 'y1', 'x2', 'y2', 'style_id']
+
+
+class GetTestPredictStyleSerializer(serializers.Serializer):
+    is_man = serializers.BooleanField()
+    image = serializers.ImageField()
+    
+    class Meta:
+        fields = ['is_man', 'image']
+
+class ShowTestPredictStyleSerializer(serializers.Serializer):
+    category = serializers.CharField(read_only=True)
+    predict_elapsed = serializers.DurationField(read_only=True)
+    crop_name = serializers.CharField(read_only=True)
+    crop_image = serializers.CharField(read_only=True)
+    bounding_box = serializers.JSONField(read_only=True)
+    products = ProductSerializer(many=True, read_only=True)
+
+    class Meta:
+        fields = ['category', 'predict_elapsed', 'crop_name', 'crop_image', 'bounding_box', 'products']

@@ -79,7 +79,7 @@ class Command(BaseCommand):
         for product in qs:
             try:
                 classifier_predict = classifier.predict(
-                    image_url=product.image,
+                    image=product.image,
                     type_labels=type_labels,
                     color_labels=color_labels,
                 )

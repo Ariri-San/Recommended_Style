@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 
 import shutil
 import os
+import base64
 import time
 from datetime import timedelta
 from PIL import Image, ImageOps
@@ -78,19 +79,19 @@ class FindSimilarProducts:
         color_labels = [c.title for c in colors]
         
         classifier_predict = self.classifier.predict(
-            image_url=crop_path,
+            image=pil_crop,
             type_labels=type_labels,
             color_labels=color_labels,
         )
         predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
         
         # embedding
-        embedding = self.classifier.encode_image(crop_path)
+        embedding = self.classifier.encode_image(pil_crop)
         image_embedding = embedding.tolist()
         
         # پیدا کردن محصولات مشابه
         similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
-        
+
         elapsed_seconds = time.time() - start_time
         elapsed_duration = timedelta(seconds=elapsed_seconds)
         # ایجاد MyStylePredict
@@ -126,6 +127,7 @@ class FindSimilarProducts:
     
     def extract_image(self, my_style: MyStyle) -> list[MyStylePredict]:
         print(f"Processing Style {my_style.id}")
+        image = self._open_imagefield(my_style.image)
         
         # DElete Predicts of Style
         crop_dir = os.path.join(settings.MEDIA_ROOT, "my_styles/crops", str(my_style.id))
@@ -135,7 +137,7 @@ class FindSimilarProducts:
         
         with transaction.atomic():
             MyStylePredict.objects.filter(style=my_style).delete()
-            detected_products_info = self._detect_products(my_style.image, crop_dir)
+            detected_products_info = self._detect_products(image)
             
             for idx, prod_info in enumerate(detected_products_info):
                 start_time = time.time()
@@ -148,15 +150,19 @@ class FindSimilarProducts:
                 color_labels = [c.title for c in colors]
                 
                 classifier_predict = self.classifier.predict(
-                    image_url=prod_info['crop_path'],
+                    image=prod_info["image"],
                     type_labels=type_labels,
                     color_labels=color_labels,
                 )
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
-                embedding = self.classifier.encode_image(prod_info['crop_path'])
+                embedding = self.classifier.encode_image(prod_info["image"])
                 image_embedding = embedding.tolist()
                 similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
 
+                crop_filename = f"{prod_info['category_name']}.png"
+                crop_rel_path = os.path.join("my_styles/crops", str(my_style.id), crop_filename)
+                crop_rel_path = self._save_crop_image(prod_info["image"], crop_rel_path)
+                
                 elapsed_seconds = time.time() - start_time
                 elapsed_duration = timedelta(seconds=elapsed_seconds)
                 
@@ -166,7 +172,7 @@ class FindSimilarProducts:
                     prediction_model='ViT-B-32 laion2b_s34b_b79k',
                     predict_elapsed=elapsed_duration,
                     crop_name=prod_info['category_name'],
-                    crop_image=prod_info['crop_path'],
+                    crop_image=crop_rel_path,
                     image_embedding=json.dumps(image_embedding),
                     image_embedding_dim=len(categories),
                     bounding_box=json.dumps(prod_info['bounding_box'])
@@ -175,6 +181,57 @@ class FindSimilarProducts:
                 style_predict.detected_products.set(similar_products)
 
         print(f"Finished Style {my_style.id}")
+    
+    
+    def extract_test_image(self, image: Image, is_man=None, product_n=30) -> list[MyStylePredict]:
+        print(f"Processing test")
+        
+        crops = []
+        
+        with transaction.atomic():
+            detected_products_info = self._detect_products(image)
+            
+            for idx, prod_info in enumerate(detected_products_info):
+                start_time = time.time()
+                
+                # Use Category titles as type labels
+                categories = list(Category.objects.all().order_by("title"))
+                type_labels = [c.title for c in categories]
+                # Use Color titles as color labels (fallback to defaults if table empty)
+                colors = list(Color.objects.all().order_by("title"))
+                color_labels = [c.title for c in colors]
+                
+                classifier_predict = self.classifier.predict(
+                    image=prod_info['image'],
+                    type_labels=type_labels,
+                    color_labels=color_labels,
+                )
+                predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                embedding = self.classifier.encode_image(prod_info['image'])
+                image_embedding = embedding.tolist()
+                similar_products = self._find_similar_products(image_embedding, len(image_embedding), is_man=is_man, top_n=product_n)
+
+                elapsed_seconds = time.time() - start_time
+                elapsed_duration = timedelta(seconds=elapsed_seconds)
+                
+                # Convert Pil Image to Base64
+                buffer = io.BytesIO()
+                prod_info['image'].thumbnail((512, 512))
+                prod_info['image'].save(buffer, format="PNG", quality=70)
+                img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                
+                crops.append({
+                    "category": predicted_category,
+                    "predict_elapsed": elapsed_duration,
+                    "crop_name": prod_info['category_name'],
+                    "crop_image": f"data:image/png;base64,{img_str}",
+                    "bounding_box": json.dumps(prod_info['bounding_box']),
+                    "products": similar_products
+                })
+
+        print(f"Finished Style Test")
+        
+        return crops
         
 
     def _load_models(self):
@@ -233,8 +290,8 @@ class FindSimilarProducts:
         return saved_path
 
 
-    def _detect_products(self, image_path, crop_dir):
-        image = self._open_imagefield(image_path)
+    def _detect_products(self, image):
+        # image = self._open_imagefield(image_path)
         np_img = np.array(image)
         H, W, _ = np_img.shape
 
@@ -300,13 +357,8 @@ class FindSimilarProducts:
             pil_img = Image.fromarray(roi_img).convert("RGBA")
             pil_img.putalpha(Image.fromarray(roi_mask))
 
-            crop_filename = f"{cname}.png"
-            crop_path = os.path.join(crop_dir, crop_filename)
-            pil_img.save(crop_path)
-
             detected.append({
-                "crop_path": crop_path,
-                "image_crop": pil_img,
+                "image": pil_img,
                 "bounding_box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
                 "category_name": cname
             })
