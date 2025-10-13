@@ -1,0 +1,5 @@
+{
+    "BaseUrlLocal": "http://127.0.0.1:8000/",
+    "BaseUrl": "http://istyle-backend.ir/",
+    "TokenName": "JWT"
+}
