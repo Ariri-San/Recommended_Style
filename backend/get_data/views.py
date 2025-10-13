@@ -15,6 +15,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 
 from core.permissions import IsAdminOrReadOnly
+from core.pagination import CustomDefaultPagination
 from .scripts.detect_products import FindSimilarProducts
 from . import models, serializers, filters, permissions
 
@@ -43,8 +44,9 @@ class ColorViewSet(ModelViewSet):
 
 
 class ProductViewSet(ModelViewSet):
-    queryset = models.Product.objects.all()
+    queryset = models.Product.objects.prefetch_related("likes", "predicts__category", "predicts__color").select_related("site").all()
     serializer_class = serializers.ProductSerializer
+    pagination_class = CustomDefaultPagination
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = filters.ProductFilter
@@ -56,6 +58,7 @@ class StyleViewSet(ModelViewSet):
     queryset = models.Style.objects.all()
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter]
+    pagination_class = CustomDefaultPagination
     filterset_class = filters.StyleFilter
     search_fields = ['title']
     
@@ -78,6 +81,7 @@ class StylePredictViewSet(ModelViewSet):
 class MyStyleViewSet(ModelViewSet):
     permission_classes = [permissions.MyStylePermission]
     filter_backends = [DjangoFilterBackend]
+    pagination_class = CustomDefaultPagination
     filterset_class = filters.MyStyleFilter
     
     def get_queryset(self):

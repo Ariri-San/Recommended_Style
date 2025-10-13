@@ -90,6 +90,7 @@
 
 .navbar.sticky-top {
     top: -100px;
+    background-color: #2b2b2b;
     transition: .5s;
 }
 

@@ -28,7 +28,7 @@ class LoginForm extends Form {
     return (
       <form onSubmit={this.handleSubmit} method="post" className="form-small">
         <div className="segment">
-          <h1>ورود به پنل فروشگاه</h1>
+          <h1>ورود به اکانت شخصی</h1>
         </div>
         
         <label>

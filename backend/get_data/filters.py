@@ -3,8 +3,8 @@ from .models import Product, Style, MyStyle
 
 
 class ProductFilter(django_filters.FilterSet):
-  category_id = django_filters.AllValuesFilter(field_name="category")
-  color_id = django_filters.AllValuesMultipleFilter(field_name="color")
+  category_id = django_filters.AllValuesMultipleFilter(field_name="predicts__category")
+  color_id = django_filters.AllValuesMultipleFilter(field_name="predicts__color")
   site_id = django_filters.AllValuesMultipleFilter(field_name="site")
   min_price = django_filters.NumberFilter(field_name='price', lookup_expr='gte')
   max_price = django_filters.NumberFilter(field_name='price', lookup_expr='lte')
