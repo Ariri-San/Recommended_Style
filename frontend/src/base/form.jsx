@@ -1,10 +1,11 @@
 import React, { Component } from "react";
-import Joi, { options } from "joi-browser";
+import Joi from "joi-browser";
 import Input from "./input";
 import Select from "./select";
 import TextArea from "./textArea";
 import { toast } from "react-toastify";
 import request from "../services/requestService.js";
+
 
 class Form extends Component {
     state = {
@@ -21,19 +22,13 @@ class Form extends Component {
         else if ( this.onSubmit) return this.onSubmit(data);
 
         try {
-            if (this.state.dataFormData){
-                for (const key in data) {
-                    if (Object.prototype.hasOwnProperty.call(data, key)) {
-                        console.log(key in this.state.dataFormData)
-                        if (key in this.state.dataFormData){
-                            this.state.dataFormData[key] = data[key]
-                            delete data[key]
-                        }
-                    }
+            const formData = new FormData();
+            for (const key in data) {
+                if (data[key] !== undefined && data[key] !== null) {
+                    formData.append(key, data[key]);
                 }
-                await request.saveObject(this.setFormData(this.state.dataFormData, new FormData()), this.props.urlForm, this.props.id);
-            };
-            const response = request.saveObject(data, this.props.urlForm, this.props.id, this.props.isPut);
+            }
+            const response = request.saveObject(data, this.props.urlForm, this.props.id, this.props.isPut, {headers: { "Content-Type": "multipart/form-data" }});
             
             this.buttonDisabled = true;
             
@@ -48,7 +43,7 @@ class Form extends Component {
                 }
             );
 
-            // console.log(results);
+            console.log(results);
 
             await new Promise(resolve => setTimeout(resolve, 2000))
             this.buttonDisabled = false;
@@ -56,7 +51,9 @@ class Form extends Component {
                 this.props.onResults(data, results);
             }
 
-            return this.props.navigate(this.props.toPath);
+            if (this.props.toPath) {
+                return this.props.navigate(this.props.toPath);
+            }
 
         } catch (error) {
             if (error.response){

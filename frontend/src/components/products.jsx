@@ -46,7 +46,7 @@ function showProducts(items, state, setState) {
 
 async function setData(setState, state, location) {
     try {
-        const response = await request.getObjects("products/" + (location.search ? location.search : ""));
+        const response = await request.getObjects("api/products/" + (location.search ? location.search : ""));
         console.log(response.data);
         return setState({ ...state, data: response.data, change:true});
     } catch (error) {
@@ -149,13 +149,13 @@ function Products(props) {
                         {showProducts(state.data.results, state, setState)}
                     </div>
 
-                    {pagination(state.data.links, "products/")}
+                    {pagination(state.data.links, "api/products/")}
                 </div>
             </div>
     );
     else if (!props.user){
-        navigate("/login")
-    }
+        // navigate("/login")
+    };
 
 }
 

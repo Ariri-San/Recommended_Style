@@ -8,7 +8,7 @@ import UserForm from "./forms/userForm.jsx";
 function User(props) {
     const location = useLocation();
     const navigate = useNavigate();
-    const url = "core/users/";
+    const url = "auth/users/";
 
 
     if (props.user) return (

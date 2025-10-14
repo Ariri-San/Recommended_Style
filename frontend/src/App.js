@@ -42,8 +42,7 @@ class App extends Component {
 
   async componentDidMount() {
     try {
-      const jwt = auth.getCurrentUser();
-      const result = await request.getObjects("auth/users/", jwt.user_id);
+      const result = await request.getObjects("auth/users/me/");
       this.setState({
         user: {
           id: result.data.id,

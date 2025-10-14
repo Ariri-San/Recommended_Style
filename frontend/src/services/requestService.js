@@ -28,13 +28,13 @@ export function getOptions(url = null, id = null) {
     return http.options(changeUrl(url, id));
 }
 
-export function saveObject(object, url = null, id = null, put = false) {
+export function saveObject(object, url=null, id=null, put=false, config = {}) {
     if (id) {
-        if (put) return http.put(changeUrl(url, id), object);
-        return http.patch(changeUrl(url, id), object);
+        if (put) return http.put(changeUrl(url, id), object, config);
+        return http.patch(changeUrl(url, id), object, config);
     }
 
-    return http.post(changeUrl(url), object);
+    return http.post(changeUrl(url), object, config);
 }
 
 export function deleteObject(id, url = null, data = null) {
