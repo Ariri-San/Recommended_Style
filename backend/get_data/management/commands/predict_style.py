@@ -145,7 +145,7 @@ class Command(BaseCommand):
                     predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
                     embedding = self.classifier.encode_image(prod_info['image'])
                     image_embedding = embedding.tolist()
-                    similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
+                    similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, style.is_man, 50)
                     
                     img_io = BytesIO()
                     prod_info['image'].save(img_io, format='PNG')
@@ -327,8 +327,10 @@ class Command(BaseCommand):
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]
 
-    def _find_similar_products(self, query_emb, emb_dim, category=None, top_n=30):
-        product_predicts = ProductPredict.objects.all() if not category else ProductPredict.objects.filter(category=category)
+    def _find_similar_products(self, query_emb, emb_dim, category=None, is_man=None, top_n=30):
+        product_predicts = ProductPredict.objects.all() if not is_man else ProductPredict.objects.filter(product__is_man=is_man)
+        product_predicts = product_predicts if not category else product_predicts.filter(category=category)
+        
         db_embs = []
         db_products = []
         for product_predict in product_predicts:
@@ -343,6 +345,7 @@ class Command(BaseCommand):
         
         sims = cosine_similarity([query_emb], np.array(db_embs))[0]
         top_idx = sims.argsort()[-top_n:][::-1]
+        
         return [db_products[i] for i in top_idx]
 
     def _extract_personal_attributes(self, img_input):

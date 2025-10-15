@@ -1,5 +1,5 @@
 from decimal import Decimal
-import math
+import json
 from django.db import transaction
 from django.db.models import Sum, Min, Max
 from rest_framework import serializers
@@ -85,10 +85,27 @@ class StylePredictSerializer(serializers.ModelSerializer):
     style = StyleSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     products = ProductSerializer(many=True, read_only=True)
+    bounding_box = serializers.SerializerMethodField(read_only=True)
+    
+    def get_bounding_box(self, style_predict: models.StylePredict):
+        return json.loads(style_predict.crop_meta)["bounding_box"]
     
     class Meta:
         model = models.StylePredict
-        fields = ['id', 'style', 'category', 'crop_name', 'products', 'crop_image', 'crop_meta', 'last_update', 'created_at']
+        fields = ['id', 'style', 'category', 'crop_name', 'products', 'crop_image', 'bounding_box', 'last_update', 'created_at']
+
+class SimpleStylePredictSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+    bounding_box = serializers.SerializerMethodField(read_only=True)
+    
+    def get_bounding_box(self, style_predict: models.StylePredict):
+        return json.loads(style_predict.crop_meta)["bounding_box"]
+    
+    class Meta:
+        model = models.StylePredict
+        fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'last_update', 'created_at']
+
 
 
 #  ----------  MyStyle  ----------
@@ -133,6 +150,10 @@ class MyStylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     detected_products = ProductSerializer(many=True, read_only=True)
     product = ProductSerializer(read_only=True)
+    bounding_box = serializers.SerializerMethodField(read_only=True)
+    
+    def get_bounding_box(self, style_predict: models.MyStylePredict):
+        return json.loads(style_predict.bounding_box)
     
     class Meta:
         model = models.MyStylePredict
@@ -146,6 +167,10 @@ class UpdateMyStylePredictSerializer(serializers.ModelSerializer):
 class SimpleMyStylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     product = ProductSerializer(read_only=True)
+    bounding_box = serializers.SerializerMethodField(read_only=True)
+    
+    def get_bounding_box(self, style_predict: models.MyStylePredict):
+        return json.loads(style_predict.bounding_box)
     
     class Meta:
         model = models.MyStylePredict
@@ -155,7 +180,7 @@ class SimpleMyStylePredictSerializer(serializers.ModelSerializer):
 
 #  ----------  Custom Serializers  ----------
 class StyleAndPredictSerializer(serializers.ModelSerializer):
-    predicts = SimpleMyStylePredictSerializer(many=True, read_only=True)
+    predicts = SimpleStylePredictSerializer(many=True, read_only=True)
     like = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
     
