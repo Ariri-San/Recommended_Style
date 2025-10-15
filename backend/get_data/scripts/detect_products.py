@@ -129,11 +129,11 @@ class FindSimilarProducts:
         print(f"Processing Style {my_style.id}")
         image = self._open_imagefield(my_style.image)
         
-        # DElete Predicts of Style
-        crop_dir = os.path.join(settings.MEDIA_ROOT, "my_styles/crops", str(my_style.id))
-        if os.path.exists(crop_dir):
-            shutil.rmtree(crop_dir)
-        os.makedirs(crop_dir, exist_ok=True)
+        # # DElete Predicts of Style
+        # crop_dir = os.path.join(settings.MEDIA_ROOT, "my_styles/crops", str(my_style.id))
+        # if os.path.exists(crop_dir):
+        #     shutil.rmtree(crop_dir)
+        # os.makedirs(crop_dir, exist_ok=True)
         
         with transaction.atomic():
             MyStylePredict.objects.filter(style=my_style).delete()

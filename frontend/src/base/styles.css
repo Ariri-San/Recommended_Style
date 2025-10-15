@@ -1,0 +1,19 @@
+a.disabled {
+    color: var(--bs-btn-disabled-color);
+    pointer-events: none;
+    /* background-color: var(--bs-btn-disabled-bg); */
+    /* border-color: var(--bs-btn-disabled-border-color); */
+    opacity: var(--bs-btn-disabled-opacity);
+}
+
+a.is_active {
+    color: var(--bs-btn-disabled-color);
+    pointer-events: none;
+    /* background-color: var(--bs-btn-disabled-bg); */
+    border-color: var(--bs-btn-disabled-border-color);
+    opacity: var(--bs-btn-disabled-opacity);
+}
+
+.pagination{
+    flex-wrap: wrap;
+}

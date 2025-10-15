@@ -32,8 +32,8 @@ function Navbar({ user }) {
                     <div className="navbar-nav ms-auto p-4 p-lg-0">
                         <NavLink to="/" className="nav-item nav-link">Home</NavLink>
                         <NavLink to="/products" className="nav-item nav-link">Products</NavLink>
-                        <NavLink to="/add_product" className="nav-item nav-link">Styles</NavLink>
-                        {user ? <NavLink to="/orders" className="nav-item nav-link">Recommended System</NavLink> : ""}
+                        <NavLink to="/styles" className="nav-item nav-link">Styles</NavLink>
+                        {user ? <NavLink to="/recommend" className="nav-item nav-link">Recommended System</NavLink> : ""}
                         <div className="nav-item dropdown">
                             <a href="" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Account</a>
                             <div className="dropdown-menu m-0">

@@ -2,11 +2,13 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
+from django.core.files.base import ContentFile
 
-
+from io import BytesIO
+import uuid
 import shutil
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 import json
 import torch
@@ -106,15 +108,11 @@ class Command(BaseCommand):
                 self.stdout.write(f"Skipping Style {style.id}, no image")
                 continue
 
-            image_path = style.image_local.path
             self.stdout.write(f"Processing Style {style.id}")
-            crop_dir = os.path.join(settings.MEDIA_ROOT, "styles/crops", str(style.id))
-            if os.path.exists(crop_dir):
-                shutil.rmtree(crop_dir)  # حذف کل پوشه و محتویات
-            os.makedirs(crop_dir, exist_ok=True)
-            detected_products_info = self._detect_products(image_path, crop_dir)
+            image = self._open_imagefield(style.image_local)
+            detected_products_info = self._detect_products(image)
 
-            full_embedding, full_dim = self._generate_embedding(image_path)
+            full_embedding, full_dim = self._generate_embedding(style.image_local)
 
             with transaction.atomic():
                 
@@ -148,6 +146,10 @@ class Command(BaseCommand):
                     embedding = self.classifier.encode_image(prod_info['image'])
                     image_embedding = embedding.tolist()
                     similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, 50)
+                    
+                    img_io = BytesIO()
+                    prod_info['image'].save(img_io, format='PNG')
+                    img_content = ContentFile(img_io.getvalue(), name=f"{uuid.uuid4().hex}.png")
 
                     style_predict = StylePredict.objects.create(
                         style=style,
@@ -155,7 +157,8 @@ class Command(BaseCommand):
                         category=predicted_category,
                         prediction_model='ViT-B-32 laion2b_s34b_b79k',
                         predicted_at=timezone.now(),
-                        crop_image=prod_info['image'],
+                        crop_image=img_content,
+                        crop_name=prod_info['category_name'],
                         image_embedding=json.dumps(image_embedding),
                         image_embedding_dim=len(categories),
                         crop_meta=json.dumps({
@@ -228,10 +231,20 @@ class Command(BaseCommand):
             transforms.ToTensor(),
             transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])
         ])
+    
+    
+    def _open_imagefield(self, image_field):
+        """Open a Django ImageField and apply EXIF orientation."""
+        with image_field.open('rb') as f:
+            img = Image.open(f)
+            # Apply EXIF orientation to fix rotation
+            img = ImageOps.exif_transpose(img)
+            img.load()  # Ensure file is fully read before closing
+        return img.convert("RGB")
+    
 
-
-    def _detect_products(self, image_path, crop_dir):
-        image = Image.open(image_path).convert("RGB")
+    def _detect_products(self, image):
+        # image = self._open_imagefield(image_path)
         np_img = np.array(image)
         H, W, _ = np_img.shape
 
@@ -251,7 +264,6 @@ class Command(BaseCommand):
                     out = out[0]
             parsing = out.squeeze(0).cpu().numpy().argmax(0)
 
-        # دسته‌ها
         label_groups = {
             "hat": [1],
             "sunglasses": [3],
@@ -261,34 +273,25 @@ class Command(BaseCommand):
             "belt": [8],
             "shoes": [9, 10],
         }
-
-        min_pixels_by_class = {
-            "sunglasses": 100,
-            "hat": 300,
-        }
-        default_min_pixels = 100
-
+        min_pixels_by_class = {"sunglasses": 300, "hat": 700}
+        default_min_pixels = 2000
         detected = []
 
         for cname, labels in label_groups.items():
             mask = np.zeros_like(parsing, dtype=np.uint8)
             for lb in labels:
                 mask = mask | (parsing == lb).astype(np.uint8)
-
             if mask.sum() == 0:
                 continue
 
-            # Resize به اندازه تصویر اصلی
             mask_resized = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST).astype(np.uint8)
             mask_resized = (mask_resized * 255).astype(np.uint8)
 
             pixel_count = int(np.count_nonzero(mask_resized))
-            min_pixels = min_pixels_by_class.get(cname, default_min_pixels)
-            if pixel_count < min_pixels:
-                self.stdout.write(f"Discarding {cname} (pixels={pixel_count} < {min_pixels})")
+            if pixel_count < min_pixels_by_class.get(cname, default_min_pixels):
+                print(f"Discarding {cname} (pixels={pixel_count} < {default_min_pixels})")
                 continue
 
-            # ---- dilation قبل از بریدن ----
             kernel_size = 20 if cname == "shoes" else 5
             kernel = np.ones((kernel_size, kernel_size), np.uint8)
             mask_resized = cv2.dilate(mask_resized, kernel, iterations=1)
@@ -301,17 +304,15 @@ class Command(BaseCommand):
             y1, y2 = ys.min(), ys.max()
 
             roi_img = np_img[y1:y2+1, x1:x2+1]
-            roi_mask = mask_resized[y1:y2+1, x1:x2+1]
-            clothing = cv2.bitwise_and(roi_img, roi_img, mask=roi_mask)
+            roi_mask = mask_resized[y1:y2+1, x1:x2+1].astype(np.uint8)
 
-            crop_filename = f"{cname}.png"
-            crop_path = os.path.join(crop_dir, crop_filename)
-            cv2.imwrite(crop_path, cv2.cvtColor(clothing, cv2.COLOR_RGB2BGR))
+            # تبدیل BGR → RGB و افزودن آلفا
+            pil_img = Image.fromarray(roi_img).convert("RGBA")
+            pil_img.putalpha(Image.fromarray(roi_mask))
 
             detected.append({
-                "crop_path": crop_path,
-                "image_crop": Image.fromarray(clothing),
-                "bounding_box": [int(x1), int(y1), int(x2), int(y2)],
+                "image": pil_img,
+                "bounding_box": {"x1": int(x1), "y1": int(y1), "x2": int(x2), "y2": int(y2)},
                 "category_name": cname
             })
 
@@ -319,9 +320,9 @@ class Command(BaseCommand):
 
 
 
-    def _generate_embedding(self, img_input):
-        img = Image.open(img_input).convert('RGB') if isinstance(img_input,str) else img_input
-        t = self.transform(img).unsqueeze(0).to(self.device)
+    def _generate_embedding(self, image_path):
+        image = self._open_imagefield(image_path)
+        t = self.transform(image).unsqueeze(0).to(self.device)
         with torch.no_grad():
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]

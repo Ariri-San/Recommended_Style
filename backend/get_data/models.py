@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 
+import os
+
 from likes.models import LikedItem
 
 
@@ -77,6 +79,7 @@ class ProductPredict(models.Model):
         unique_together = [['product', 'version']]
 
 
+
 class Style(models.Model):
     site = models.ForeignKey(Site, on_delete=models.PROTECT, related_name='styles')
     id_object = models.PositiveBigIntegerField()
@@ -105,6 +108,10 @@ class Style(models.Model):
         ordering = ['id']
 
 
+def style_crop_upload_path(instance, filename):
+    # path: styles/crops/<style_id>/<crop_name>
+    return os.path.join("styles", "crops", str(instance.style.id), f"{str(instance.crop_name)}.png")
+
 class StylePredict(models.Model):
     style = models.ForeignKey(Style, on_delete=models.CASCADE, related_name='predicts')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='style_predicts')
@@ -116,7 +123,7 @@ class StylePredict(models.Model):
     prediction_model = models.CharField(max_length=127, null=True, blank=True)
     predicted_at = models.DateTimeField(null=True, blank=True)
     # NEW: store the crop image file for this StylePredict
-    crop_image = models.ImageField(upload_to="styles/crops", null=True, blank=True)
+    crop_image = models.ImageField(upload_to=style_crop_upload_path, null=True, blank=True)
     # NEW: optional meta (bbox, score, category)
     crop_meta = models.JSONField(null=True, blank=True)
     last_update = models.DateTimeField(auto_now=True)

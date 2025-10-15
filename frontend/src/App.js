@@ -8,7 +8,7 @@ import auth from "./services/authService";
 
 // Import CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './App.css';
+import './base/styles.css'
 import "./templates/css/bootstrap.min.css";
 import "./templates/css/style.css";
 import "./css/form.css";
@@ -32,7 +32,7 @@ import Products from "./components/products";
 import Product from "./components/product";
 import AddProducts from "./components/add_products";
 import User from './components/user';
-import Orders from "./components/orders";
+import Styles from "./components/styles";
 import Order from "./components/order";
 
 
@@ -74,7 +74,7 @@ class App extends Component {
           <Route path="/products" element={<Products user={this.state.user} />}></Route>
           <Route path="/products/:id" element={<Product user={this.state.user} />}></Route>
           <Route path="/add_product" element={<AddProducts user={this.state.user} />}></Route>
-          <Route path="/orders" element={<Orders user={this.state.user} />}></Route>
+          <Route path="/styles" element={<Styles user={this.state.user} />}></Route>
           <Route path="/orders/:id" element={<Order user={this.state.user} />}></Route>
 
           <Route path="/register" element={<Register user={this.state.user} />}></Route>

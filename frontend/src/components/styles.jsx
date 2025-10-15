@@ -10,48 +10,36 @@ import pagination from "../base/functions";
 
 
 
-function showStatusPayment(payment_status){
-    if (payment_status === "UP") return "پرداخت نشده";
-    else if (payment_status === "PE") return "در حال بررسی";
-    else if (payment_status === "PR") return "درحال انجام";
-    else if (payment_status === "SN") return "درحال ارسال";
-    else if (payment_status === "CO") return "تمام شده";
-    else if (payment_status === "FA") return "کنسل شده";
-    else if (payment_status === "SE") return "تسویه شده";
-    else return "";
+function showStatusGender(is_man){
+    if (is_man) return "مرد";
+    else return "زن";
 }
 
-function colorPaymentStatus(payment_status){
-    if (payment_status === "UP") return "#7d7d7dbd";
-    else if (payment_status === "PE") return "rgb(22 101 251)";
-    else if (payment_status === "PR") return "#ffb500";
-    else if (payment_status === "SN") return "rgb(251 22 193)";
-    else if (payment_status === "CO") return "#5dff00";
-    else if (payment_status === "FA") return "#fb1616";
-    else if (payment_status === "SE") return "rgb(13 237 227)";
-    else return "";
+function colorGender(is_man){
+    if (is_man) return "#1672fbff";
+    else return "#d000ffff";
 }
 
 
-function showOrders(orders) {
-    return orders.results.map(order => 
+function showStyles(styles) {
+    return styles.results.map(style => 
         <div className="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
             <div className="team-item">
-                <NavLink to={"/orders/" + order.id}>
+                <NavLink to={"/styles/" + style.id}>
                     <div className="team-img position-relative overflow-hidden">
-                        <img className="img-fluid" src={order.items[0].product.image} alt=""/>
+                        <img className="img-fluid" src={style.image} alt=""/>
                         <div className="team-social" style={{display:"flex", flexDirection: "column"}}>
-                            <h4>id: {order.id}</h4>
+                            <h4>id: {style.id}</h4>
                             <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd"/>
                         </div>
                     </div>
                 </NavLink>
                 <div className="bg-secondary text-center p-4" style={{display: "flex", flexDirection: "column"}}>
-                    <h5 className="text-uppercase">{order.order.address.city.name}</h5>
-                    <span className="text-primary-2" style={{color: colorPaymentStatus(order.payment_status)}}>وضعیت : {showStatusPayment(order.payment_status)}</span>
-                    <span className="text-primary-2">تعداد : {order.items.length}</span>
-                    <span className="text-primary-2">هزینه ارسال : {order.price_transportation}</span>
-                    <span className="text-primary-2">میزان درآمد : {order.total_profit}</span>
+                    <h5 className="text-uppercase">{style.title.length > 30 ? style.title.substring(0, 30) + "..." : style.title}</h5>
+                    <span className="text-primary-2" style={{color: colorGender(style.is_man)}}>جنسیت : {showStatusGender(style.is_man)}</span>
+                    <span className="text-primary-2">تعداد لایک : {style.likes}</span>
+                    {/* <span className="text-primary-2">هزینه ارسال : {style.price_transportation}</span>
+                    <span className="text-primary-2">میزان درآمد : {style.total_profit}</span> */}
                 </div>
             </div>
         </div>
@@ -94,7 +82,7 @@ function customSubmit(event, state, setState, location, navigate) {
   
 
 
-function Orders(props) {
+function Styles(props) {
     const location = useLocation();
     const navigate = useNavigate();
     const searchParams = new URLSearchParams(location.search);
@@ -109,14 +97,14 @@ function Orders(props) {
 
 
     useEffect(() => {
-        setData(setState, state, "shop/seller_orders/" + (location.search ? location.search : ""));
+        setData(setState, state, "api/styles/" + (location.search ? location.search : ""));
     }, [location]);
 
 
-    if (props.user) return (
+    if (state.data.results) return (
         <div className="container-xxl py-5">
             <div className="container">
-                <div className="text-center mx-auto mb-5 wow fadeInUp title-products" data-wow-delay="0.1s">
+                {/* <div className="text-center mx-auto mb-5 wow fadeInUp title-products" data-wow-delay="0.1s">
                     <h2 className="d-inline-block bg-secondary text-primary-2 py-1 px-4">سفارشات شما</h2>
                     <form id="search" onSubmit={event => customSubmit(event, state, setState, location, navigate)}>
                         <div class="container h-100">
@@ -166,17 +154,16 @@ function Orders(props) {
                             </div>
                         </div>
                     </form>
-                </div>
+                </div> */}
 
-                <div className="row g-4">
-                    {state.show ? showOrders(state.data) : ""}
+                <div className="row g-4 pb-4">
+                    {state.show ? showStyles(state.data) : ""}
                 </div>
-                {state.show ? pagination(state.data.links, "shop/seller_orders/") : ""}
+                {state.show ? pagination(state.data.links, "api/styles/") : ""}
             </div>
         </div>
     );
-    else navigate("/login");
 
 }
 
-export default Orders;
+export default Styles;

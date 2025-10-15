@@ -57,15 +57,11 @@ class ProductViewSet(ModelViewSet):
 class StyleViewSet(ModelViewSet):
     queryset = models.Style.objects.all()
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = serializers.StyleAndPredictSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     pagination_class = CustomDefaultPagination
     filterset_class = filters.StyleFilter
     search_fields = ['title']
-    
-    def get_serializer_class(self):
-        if self.action == "retrieve":
-            return serializers.StyleAndPredictSerializer
-        return serializers.StyleSerializer
 
 
 
@@ -83,6 +79,7 @@ class MyStyleViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     pagination_class = CustomDefaultPagination
     filterset_class = filters.MyStyleFilter
+    serializer_class = serializers.MyStyleAndPredictSerializer
     
     def get_queryset(self):
         return models.MyStyle.objects.filter(user__is_show=True)
@@ -90,9 +87,7 @@ class MyStyleViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return serializers.CreateMyStyleSerializer
-        elif self.action == "retrieve":
-            return serializers.MyStyleAndPredictSerializer
-        return serializers.MyStyleSerializer
+        return serializers.MyStyleAndPredictSerializer
 
 
 
