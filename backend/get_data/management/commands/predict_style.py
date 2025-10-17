@@ -6,13 +6,14 @@ from django.core.files.base import ContentFile
 
 from io import BytesIO
 import uuid
-import shutil
+import requests
 import os
 from PIL import Image, ImageOps
 import numpy as np
 import json
 import torch
 import cv2
+import time
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
@@ -103,10 +104,18 @@ class Command(BaseCommand):
                 else:
                     self.stdout.write(f"Style {style.id} Passed")
                     continue
-                    
+
+            # اگر تصویر لوکال وجود ندارد، سعی کن دانلودش کنی
             if not style.image_local or not os.path.exists(style.image_local.path):
-                self.stdout.write(f"Skipping Style {style.id}, no image")
-                continue
+                if style.image:
+                    content = self.download_image(style.image)
+                    if content:
+                        file_name = f"{uuid.uuid4().hex}.jpg"
+                        style.image_local.save(file_name, ContentFile(content), save=True)
+                        print(f"Downloaded image for Style {style.id}")
+                    else:
+                        print(f"Failed to download image for Style {style.id}")
+                        continue
 
             self.stdout.write(f"Processing Style {style.id}")
             image = self._open_imagefield(style.image_local)
@@ -180,7 +189,19 @@ class Command(BaseCommand):
     #     find_simslar = FindSimilarProducts()
     #     # find_simslar.extract_image(MyStyle.objects.get(id=1))
     #     find_simslar.create_predict_from_crop(MyStyle.objects.get(id=1), {"x1": 1375, "y1": 2386, "x2": 2758, "y2": 4371})
-        
+    
+    def download_image(self, url, max_retries=2, timeout=10):
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, timeout=timeout)
+                if response.status_code == 200:
+                    return response.content
+                else:
+                    print(f"HTTP {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"Attempt {attempt+1} failed: {e}")
+                time.sleep(3)  # صبر قبل از تلاش بعدی
+        return None
 
     def _load_models(self):
         # Object detection

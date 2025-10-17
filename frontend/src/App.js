@@ -14,6 +14,7 @@ import "./templates/css/style.css";
 import "./css/form.css";
 import "./css/search.css";
 import "./css/products.css";
+import "./css/styles.css";
 
 
 // Import Js Functions

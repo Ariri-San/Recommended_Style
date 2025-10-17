@@ -20,31 +20,97 @@ function colorGender(is_man){
     else return "#d000ffff";
 }
 
-
 function showStyles(styles) {
-    return styles.results.map(style => 
+    return styles.results.map(style => (
+        <StyleCard key={style.id} style={style} />
+    ));
+}
+
+function StyleCard({ style }) {
+    const [imgSize, setImgSize] = React.useState({
+        width: 0,
+        height: 0,
+        renderedWidth: 0,
+        renderedHeight: 0
+    });
+    const imgRef = React.useRef(null);
+
+    const handleImageLoad = () => {
+        if (imgRef.current) {
+            setImgSize({
+                width: imgRef.current.naturalWidth,
+                height: imgRef.current.naturalHeight,
+                renderedWidth: imgRef.current.clientWidth,
+                renderedHeight: imgRef.current.clientHeight,
+            });
+        }
+    };
+
+    return (
         <div className="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
             <div className="team-item">
                 <NavLink to={"/styles/" + style.id}>
                     <div className="team-img position-relative overflow-hidden">
-                        <img className="img-fluid" src={style.image} alt=""/>
-                        <div className="team-social" style={{display:"flex", flexDirection: "column"}}>
+                        <img
+                            ref={imgRef}
+                            onLoad={handleImageLoad}
+                            className="img-fluid"
+                            src={style.image}
+                            alt=""
+                        />
+
+                        {/* Bounding Boxes */}
+                        <div className="bounding-boxes">
+                            {style.predicts.map(pred => {
+                                const { x1, y1, x2, y2 } = pred.bounding_box;
+                                if (!imgSize.width || !imgSize.renderedWidth) return null;
+
+                                // درصدی کردن مختصات
+                                const relX1 = x1 / imgSize.width;
+                                const relY1 = y1 / imgSize.height;
+                                const relX2 = x2 / imgSize.width;
+                                const relY2 = y2 / imgSize.height;
+
+                                // نسبت به ابعاد فعلی عکس
+                                const left = relX1 * imgSize.renderedWidth;
+                                const top = relY1 * imgSize.renderedHeight;
+                                const width = (relX2 - relX1) * imgSize.renderedWidth;
+                                const height = (relY2 - relY1) * imgSize.renderedHeight;
+
+                                return (
+                                    <div
+                                        key={pred.id}
+                                        className="bounding-box"
+                                        style={{ left, top, width, height }}
+                                    >
+                                        <span className="bbox-label">{pred.category.title}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* hover info */}
+                        <div className="team-social">
                             <h4>id: {style.id}</h4>
-                            <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd"/>
+                            <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd" />
                         </div>
                     </div>
                 </NavLink>
-                <div className="bg-secondary text-center p-4" style={{display: "flex", flexDirection: "column"}}>
-                    <h5 className="text-uppercase">{style.title.length > 30 ? style.title.substring(0, 30) + "..." : style.title}</h5>
-                    <span className="text-primary-2" style={{color: colorGender(style.is_man)}}>جنسیت : {showStatusGender(style.is_man)}</span>
+
+                <div className="bg-secondary text-center p-3 text-card">
+                    <h5 className="text-uppercase">
+                        {style.title.length > 30 ? style.title.substring(0, 30) + "..." : style.title}
+                    </h5>
+                    <span className="text-primary-2" style={{ color: colorGender(style.is_man) }}>
+                        جنسیت : {showStatusGender(style.is_man)}
+                    </span>
                     <span className="text-primary-2">تعداد لایک : {style.likes}</span>
-                    {/* <span className="text-primary-2">هزینه ارسال : {style.price_transportation}</span>
-                    <span className="text-primary-2">میزان درآمد : {style.total_profit}</span> */}
                 </div>
             </div>
         </div>
     );
 }
+
 
 
 

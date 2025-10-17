@@ -22,7 +22,7 @@ function pagination(links, target_url) {
                     </NavLink>
                 </li>
                 {links.page_links.map(item => (
-                    <li className="page-item" key={item[1]}>
+                    <li className="page-item">
                         <NavLink
                             className={(item[2] ? "page-link is_active" : "page-link") + (item[0] ? "" : " disabled")}
                             to={changeUrlPagination(item[0], target_url)}
