@@ -61,28 +61,9 @@ class ProductSerializer(serializers.ModelSerializer):
             'url', 'image_local', 'like', 'likes', 'last_update', 'created_at']
 
 
-#  ----------  Style  ----------
-class StyleSerializer(serializers.ModelSerializer):
-    site = SiteSerializer(read_only=True)
-    like = serializers.SerializerMethodField()
-    likes = serializers.SerializerMethodField()
-    
-    def get_like(self, product: models.Product):
-        if self.context["request"].user.id:
-            return product.likes.filter(user=self.context["request"].user).exists()
-
-    def get_likes(self, product: models.Product):
-        return product.likes.count()
-    
-    class Meta:
-        model = models.Style
-        fields = ['id', 'site', 'id_object', 'title', 'image', 'url', 'image_local', 'is_man',
-            'age', 'skin_color', 'hair_color', 'height', 'body_type', 'like', 'likes', 'last_update', 'created_at']
-
 
 #  ----------  StylePredict  ----------
 class StylePredictSerializer(serializers.ModelSerializer):
-    style = StyleSerializer(read_only=True)
     category = CategorySerializer(read_only=True)
     products = ProductSerializer(many=True, read_only=True)
     bounding_box = serializers.SerializerMethodField(read_only=True)
@@ -108,9 +89,10 @@ class SimpleStylePredictSerializer(serializers.ModelSerializer):
 
 
 
-#  ----------  MyStyle  ----------
-class MyStyleSerializer(serializers.ModelSerializer):
-    user = SimpleUserSerializer(read_only=True)
+#  ----------  Style  ----------
+class StyleSerializer(serializers.ModelSerializer):
+    site = SiteSerializer(read_only=True)
+    predicts = SimpleStylePredictSerializer(many=True, read_only=True)
     like = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
     
@@ -122,27 +104,27 @@ class MyStyleSerializer(serializers.ModelSerializer):
         return product.likes.count()
     
     class Meta:
-        model = models.MyStyle
-        fields = ['id', 'user', 'image', 'like', 'likes']
+        model = models.Style
+        fields = ['id', 'site', 'id_object', 'title', 'image', 'url', 'image_local', 'is_man', 'age', 
+            'skin_color', 'hair_color', 'height', 'body_type', 'predicts', 'like', 'likes', 'last_update', 'created_at']
 
-class CreateMyStyleSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        validated_data["user"] = self.context["request"].user
-        my_style = super().create(validated_data)
-        find_simslar = FindSimilarProducts()
-        find_simslar.extract_image(my_style)
-        return my_style
+class StyleAndPredictSerializer(serializers.ModelSerializer):
+    predicts = StylePredictSerializer(many=True, read_only=True)
+    like = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
     
-    def update(self, my_style, validated_data):
-        validated_data["user"] = self.context["request"].user
-        my_style = super().update(my_style ,validated_data)
-        find_simslar = FindSimilarProducts()
-        find_simslar.extract_image(my_style)
-        return my_style
+    def get_like(self, product: models.Product):
+        if self.context["request"].user.id:
+            return product.likes.filter(user=self.context["request"].user).exists()
+
+    def get_likes(self, product: models.Product):
+        return product.likes.count()
     
     class Meta:
-        model = models.MyStyle
-        fields = ['image']
+        model = models.Style
+        fields = ['id', 'site', 'id_object', 'title', 'image', 'url', 'image_local', 'is_man',
+            'age', 'skin_color', 'hair_color', 'height', 'body_type', 'like', 'likes', 'predicts']
+
 
 
 #  ----------  MyStylePredict  ----------
@@ -178,26 +160,8 @@ class SimpleMyStylePredictSerializer(serializers.ModelSerializer):
 
 
 
-#  ----------  Custom Serializers  ----------
-class StyleAndPredictSerializer(serializers.ModelSerializer):
-    predicts = SimpleStylePredictSerializer(many=True, read_only=True)
-    like = serializers.SerializerMethodField()
-    likes = serializers.SerializerMethodField()
-    
-    def get_like(self, product: models.Product):
-        if self.context["request"].user.id:
-            return product.likes.filter(user=self.context["request"].user).exists()
-
-    def get_likes(self, product: models.Product):
-        return product.likes.count()
-    
-    class Meta:
-        model = models.Style
-        fields = ['id', 'site', 'id_object', 'title', 'image', 'url', 'image_local', 'is_man',
-            'age', 'skin_color', 'hair_color', 'height', 'body_type', 'like', 'likes', 'predicts']
-
-
-class MyStyleAndPredictSerializer(serializers.ModelSerializer):
+#  ----------  MyStyle  ----------
+class MyStyleSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)
     predicts = SimpleMyStylePredictSerializer(many=True, read_only=True)
     like = serializers.SerializerMethodField()
@@ -212,8 +176,47 @@ class MyStyleAndPredictSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.MyStyle
+        fields = ['id', 'user', 'image', 'predicts', 'like', 'likes']
+
+class CreateMyStyleSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        validated_data["user"] = self.context["request"].user
+        my_style = super().create(validated_data)
+        find_simslar = FindSimilarProducts()
+        find_simslar.extract_image(my_style)
+        return my_style
+    
+    def update(self, my_style, validated_data):
+        validated_data["user"] = self.context["request"].user
+        my_style = super().update(my_style ,validated_data)
+        find_simslar = FindSimilarProducts()
+        find_simslar.extract_image(my_style)
+        return my_style
+    
+    class Meta:
+        model = models.MyStyle
+        fields = ['image']
+
+class MyStyleAndPredictSerializer(serializers.ModelSerializer):
+    user = SimpleUserSerializer(read_only=True)
+    predicts = MyStylePredictSerializer(many=True, read_only=True)
+    like = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField()
+    
+    def get_like(self, product: models.Product):
+        if self.context["request"].user.id:
+            return product.likes.filter(user=self.context["request"].user).exists()
+
+    def get_likes(self, product: models.Product):
+        return product.likes.count()
+    
+    class Meta:
+        model = models.MyStyle
         fields = ['id', 'user', 'image', 'like', 'likes', 'predicts']
 
+
+
+#  ----------  Custom Serializers  ----------
 class UpdateCropMyStylePredictSerializer(serializers.Serializer):
     x1 = serializers.IntegerField()
     y1 = serializers.IntegerField()

@@ -90,10 +90,10 @@ function StyleCard({ style }) {
                         </div>
 
                         {/* hover info */}
-                        <div className="team-social">
+                        {/* <div className="team-social">
                             <h4>id: {style.id}</h4>
                             <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd" />
-                        </div>
+                        </div> */}
                     </div>
                 </NavLink>
 
@@ -170,7 +170,7 @@ function Styles(props) {
     if (state.data.results) return (
         <div className="container-xxl py-5">
             <div className="container">
-                {/* <div className="text-center mx-auto mb-5 wow fadeInUp title-products" data-wow-delay="0.1s">
+                <div className="text-center mx-auto mb-5 wow fadeInUp title-products" data-wow-delay="0.1s">
                     <h2 className="d-inline-block bg-secondary text-primary-2 py-1 px-4">سفارشات شما</h2>
                     <form id="search" onSubmit={event => customSubmit(event, state, setState, location, navigate)}>
                         <div class="container h-100">
@@ -186,7 +186,7 @@ function Styles(props) {
                                     name="search"
                                     onkeypress="handle"
                                 />
-                                <select
+                                {/* <select
                                     className="select_box"
                                     defaultValue={state.ordering}
                                     id="ordering" name="ordering"
@@ -198,8 +198,8 @@ function Styles(props) {
                                     <option className="option_search" value="-order__price_transportation">transportation descending</option>
                                     <option className="option_search" value="unit_price">unit_price ascending</option>
                                     <option className="option_search" value="-unit_price">unit_price descending</option>
-                                </select>
-                                <select
+                                </select> */}
+                                {/* <select
                                     className="select_box"
                                     defaultValue={state.payment_status}
                                     id="payment_status" name="payment_status"
@@ -213,14 +213,14 @@ function Styles(props) {
                                     <option className="option_search" value="CO">تمام شده</option>
                                     <option className="option_search" value="FA">کنسل شده</option>
                                     <option className="option_search" value="SE">تسویه شده</option>
-                                </select>
+                                </select> */}
                                 <button class="search_icon"><i class="fas fa-search"></i></button>
 
                                 </div>
                             </div>
                         </div>
                     </form>
-                </div> */}
+                </div>
 
                 <div className="row g-4 pb-4">
                     {state.show ? showStyles(state.data) : ""}

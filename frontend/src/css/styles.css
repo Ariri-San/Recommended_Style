@@ -46,3 +46,158 @@
     display: flex;
     flex-direction: column;
 }
+
+/* wrapper center */
+.style-page-center {
+  max-width: 75%;
+  width: fit-content;
+  margin: 20px auto;
+}
+
+/* main container (position:relative for svg overlay) */
+.style-page {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.2fr;
+  gap: 16px;
+  position: relative;
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(13, 38, 76, 0.06);
+  min-height: 60vh;
+}
+
+/* left */
+.style-left {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.image-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.style-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* predict-box: absolute inside image-wrapper */
+.predict-box {
+  position: absolute;
+  border: 2px solid rgba(59,130,246,0.9);
+  background: rgba(59,130,246,0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .18s ease;
+  box-sizing: border-box;
+  z-index: 3;
+}
+.predict-box:hover { transform: scale(1.02); background: rgba(59,130,246,0.18); }
+.predict-box.active { border-color: #06b6d4; background: rgba(6,182,212,0.14); }
+
+/* middle crops list */
+.style-middle {
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.crops-list { display: flex; flex-direction: column; gap: 10px; }
+.crop-item {
+  display: flex; gap: 8px; align-items: center;
+  padding: 8px; border-radius: 8px; cursor: pointer; background: #f6fbff;
+  transition: transform .12s ease, background .12s ease;
+}
+.crop-item img { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; }
+.crop-item .crop-meta { font-size: 13px; color: #0f172a; }
+.crop-item:hover { transform: translateX(4px); background: #eef8ff; }
+.crop-item.active { background: #e6f9ff; border: 1px solid #9ee7ff; }
+
+/* right products */
+.style-right {
+  overflow-y: auto;
+  padding-left: 6px;
+  max-height: 75vh;
+}
+.products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.product-card { background:#fff; border-radius:8px; padding:6px; text-align:center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+.product-card img { width:100%; height:120px; object-fit:cover; border-radius:6px; }
+.product-title { font-size:12px; margin-top:6px; }
+
+/* SVG overlay */
+.connection-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none; /* let clicks pass through */
+  z-index: 2;
+}
+
+/* path style */
+.connection-path {
+  stroke: rgba(59,130,246,0.85);
+  stroke-width: 2.5;
+  fill: none;
+  opacity: 0.85;
+  transition: stroke-width .18s, stroke .18s, opacity .18s;
+}
+.connection-path.active {
+  stroke: #06b6d4;
+  stroke-width: 3.5;
+  opacity: 1;
+}
+
+/* ====== 📱 فقط برای موبایل ====== */
+@media (max-width: 768px) {
+  .style-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 95%;
+    gap: 20px;
+    padding: 10px;
+  }
+
+  .style-left, .style-right {
+    width: 100%;
+  }
+
+  .image-wrapper {
+    max-width: 100%;
+    width: 100%;
+    aspect-ratio: 1 / 1.2;
+  }
+
+  .style-right {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .predict-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .predict-item {
+    width: 30%;
+    min-width: 90px;
+    text-align: center;
+  }
+
+  .products-list {
+    grid-template-columns: repeat(2, 1fr);
+    max-height: none;
+  }
+
+  .product-card img {
+    width: 100%;
+  }
+
+  .connection-path {
+    display: none; /* 🔹 خط‌ها توی موبایل حذف می‌شن چون جا ندارن */
+  }
+}
+

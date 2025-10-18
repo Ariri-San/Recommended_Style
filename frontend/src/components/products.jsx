@@ -18,7 +18,7 @@ function showProducts(items, state, setState) {
                     <div className="team-item" >
                         <NavLink to={"/products/" + item.id} onClick={state.selecting ? (e) => e.preventDefault() : ""}>
                             <div className="team-img position-relative overflow-hidden">
-                                <img className="img-fluid" src={item.image} alt=""/>
+                                <img className="img-fluid" src={item.image_local} alt=""/>
                                 <div className="team-social" style={{display:"flex", flexDirection: "column"}}>
                                     <h4>id: {item.id}</h4>
                                     <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd"/>
@@ -145,7 +145,7 @@ function Products(props) {
                         </form>
                     </div>
 
-                    <div className="row g-4">
+                    <div className="row g-4 pb-5">
                         {showProducts(state.data.results, state, setState)}
                     </div>
 

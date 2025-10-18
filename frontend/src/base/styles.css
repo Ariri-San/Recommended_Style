@@ -17,3 +17,7 @@ a.is_active {
 .pagination{
     flex-wrap: wrap;
 }
+
+.page-link:focus {
+    box-shadow: 0 0 0 0 !important
+}

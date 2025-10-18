@@ -63,6 +63,11 @@ class StyleViewSet(ModelViewSet):
     filterset_class = filters.StyleFilter
     search_fields = ['title']
 
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return serializers.StyleAndPredictSerializer
+        return serializers.StyleSerializer
+
 
 
 class StylePredictViewSet(ModelViewSet):
@@ -87,7 +92,9 @@ class MyStyleViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return serializers.CreateMyStyleSerializer
-        return serializers.MyStyleAndPredictSerializer
+        elif self.action == "retrieve":
+            return serializers.MyStyleAndPredictSerializer
+        return serializers.MyStyleSerializer
 
 
 
