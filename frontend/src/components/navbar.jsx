@@ -37,8 +37,8 @@ function Navbar({ user }) {
                         <div className="nav-item dropdown">
                             <a href="" className="nav-link dropdown-toggle" data-bs-toggle="dropdown">Account</a>
                             <div className="dropdown-menu m-0">
-                                {user ? <NavLink to="/tickets" className="dropdown-item">My Styles</NavLink> : ""}
-                                {user ? <NavLink to="/tickets" className="dropdown-item">Add Style</NavLink> : ""}
+                                {user ? <NavLink to="/my_styles" className="dropdown-item">My Styles</NavLink> : ""}
+                                {user ? <NavLink to="/add_style" className="dropdown-item">Add Style</NavLink> : ""}
                                 {user ? <NavLink to="/user" className="dropdown-item">Profile</NavLink> : <NavLink className="dropdown-item" to="/register">Sign Up</NavLink>}
                                 {user ? <NavLink className="dropdown-item" to="/logout"> Logout</NavLink> : <NavLink className="dropdown-item " to="/login">Login</NavLink>}
                             </div>

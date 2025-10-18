@@ -35,6 +35,8 @@ import AddProducts from "./components/add_products";
 import User from './components/user';
 import Styles from "./components/styles";
 import Style from "./components/style";
+import MyStyles from "./components/my_styles";
+import MyStyle from "./components/my_style";
 
 
 
@@ -77,6 +79,8 @@ class App extends Component {
           <Route path="/add_product" element={<AddProducts user={this.state.user} />}></Route>
           <Route path="/styles" element={<Styles user={this.state.user} />}></Route>
           <Route path="/styles/:id" element={<Style user={this.state.user} />}></Route>
+          <Route path="/my_styles" element={<MyStyles user={this.state.user} />}></Route>
+          <Route path="/my_styles/:id" element={<MyStyle user={this.state.user} />}></Route>
 
           <Route path="/register" element={<Register user={this.state.user} />}></Route>
           <Route path="/login" element={<Login />}></Route>

@@ -50,6 +50,7 @@ class ProductViewSet(ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = filters.ProductFilter
+    ordering_fields = ['title', 'price', 'last_update']
     search_fields = ['title']
 
 

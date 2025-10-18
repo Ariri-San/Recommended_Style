@@ -1,4 +1,7 @@
 import React, { useEffect } from "react";
+import TestStyle from "./test_style";
+
+
 
 function Home(props) {
     // useEffect(() => {
@@ -80,6 +83,18 @@ function Home(props) {
                 </div>
             </div>
             {/* <!-- About End --> */}
+
+
+
+
+            {/* <!-- Test Start --> */}
+
+            <TestStyle />
+
+            {/* <!-- Test End --> */}
+
+
+
 
 
             {/* <!-- Service Start --> */}

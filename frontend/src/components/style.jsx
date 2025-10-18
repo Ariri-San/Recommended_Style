@@ -181,16 +181,16 @@ function Style() {
                 const isActive = selectedPredict?.id === predict.id;
                 return (
                     <div
-                    key={predict.id}
-                    ref={el => (cropRefs.current[predict.id] = el)}
-                    className={`crop-item ${isActive ? "active" : ""}`}
-                    onClick={() => setSelectedPredict(prev => prev?.id === predict.id ? null : predict)}
+                        key={predict.id}
+                        ref={el => (cropRefs.current[predict.id] = el)}
+                        className={`crop-item ${isActive ? "active" : ""}`}
+                        onClick={() => setSelectedPredict(prev => prev?.id === predict.id ? null : predict)}
                     >
-                    <img src={predict.crop_image} alt={predict.crop_name} />
-                    <div className="crop-meta">
-                        <div className="crop-title">{predict.category.title}</div>
-                        <div className="crop-name">{predict.crop_name}</div>
-                    </div>
+                        <img src={predict.crop_image} alt={predict.crop_name} />
+                        <div className="crop-meta">
+                            <div className="crop-title">{predict.category.title}</div>
+                            {/* <div className="crop-name">{predict.crop_name}</div> */}
+                        </div>
                     </div>
                 );
                 })}

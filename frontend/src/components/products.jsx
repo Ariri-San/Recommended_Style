@@ -47,8 +47,9 @@ function showProducts(items, state, setState) {
 async function setData(setState, state, location) {
     try {
         const response = await request.getObjects("api/products/" + (location.search ? location.search : ""));
-        console.log(response.data);
-        return setState({ ...state, data: response.data, change:true});
+        const categories = await request.getObjects("api/categories/");
+        // console.log(response.data);
+        return setState({ ...state, data: response.data, categories:categories.data, change:true});
     } catch (error) {
         if (error.response) request.showError(error);
         return setState({ ...state, show: false });
@@ -63,7 +64,7 @@ function changeState(state, setState) {
 function customSubmit(event, state, setState, location, navigate) {
     event.preventDefault();
 
-    const listFilter = ["search", "ordering", "page"];
+    const listFilter = ["search", "ordering", "page", "category_id"];
     var first = true;
     location.search = "";
 
@@ -92,8 +93,9 @@ function Products(props) {
         data: [],
         search: searchParams.get("search"),
         ordering: searchParams.get("ordering"),
+        category_id : searchParams.get("category_id"),
         change: false,
-        products: []
+        categories: []
     });
 
 
@@ -124,16 +126,25 @@ function Products(props) {
                                     />
                                     <select
                                         className="select_box"
+                                        defaultValue={state.category}
+                                        id="category" name="category"
+                                        onChange={event => setState({ ...state, category_id: event.target.value })}
+                                    >
+                                        <option className="option_search" value="">All</option>
+                                        {state.categories.map(category => 
+                                            <option className="option_search" value={category.id}>{category.title}</option>
+                                        )}
+                                    </select>
+                                    <select
+                                        className="select_box"
                                         defaultValue={state.ordering}
                                         id="ordering" name="ordering"
                                         onChange={event => setState({ ...state, ordering: event.target.value })}
                                         >
                                         <option className="option_search" value="title">A to Z</option>
                                         <option className="option_search" value="-title">Z to A</option>
-                                        <option className="option_search" value="category">Category ascending</option>
-                                        <option className="option_search" value="-category">Category descending</option>
-                                        <option className="option_search" value="unit_price">unit_price ascending</option>
-                                        <option className="option_search" value="-unit_price">unit_price descending</option>
+                                        <option className="option_search" value="price">unit_price ascending</option>
+                                        <option className="option_search" value="-price">unit_price descending</option>
                                         <option className="option_search" value="last_update">last_update ascending</option>
                                         <option className="option_search" value="-last_update">last_update descending</option>
                                     </select>
