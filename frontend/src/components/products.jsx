@@ -9,6 +9,16 @@ import ProductsForm from "./forms/productsForm";
 
 
 
+function showStatusGender(is_man){
+    if (is_man) return "مرد";
+    else return "زن";
+}
+
+function colorGender(is_man){
+    if (is_man) return "#1672fbff";
+    else return "#d000ffff";
+}
+
 
 function showProducts(items, state, setState) {
     return items.map(item =>
@@ -27,7 +37,10 @@ function showProducts(items, state, setState) {
                         </NavLink>
                         <div className="bg-secondary text-center p-4" style={{display: "flex", flexDirection: "column"}}>
                             <h5 className="text-uppercase">{item.title}</h5>
-                            <span className="text-primary-2">قیمت : {item.unit_price}</span>
+                            <span className="text-primary-2" style={{ color: colorGender(item.is_man) }}>
+                                جنسیت : {showStatusGender(item.is_man)}
+                            </span>
+                            <span className="text-primary-2">قیمت : {item.price}</span>
                             {state.selecting ?
                                 <input
                                     type="checkbox"

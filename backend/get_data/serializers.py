@@ -195,7 +195,7 @@ class CreateMyStyleSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.MyStyle
-        fields = ['image']
+        fields = ['id', 'image']
 
 class MyStyleAndPredictSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)

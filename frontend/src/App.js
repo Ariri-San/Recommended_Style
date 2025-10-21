@@ -31,7 +31,7 @@ import Logout from "./components/logout";
 import Home from "./components/home";
 import Products from "./components/products";
 import Product from "./components/product";
-import AddProducts from "./components/add_products";
+import AddStyle from "./components/add_style";
 import User from './components/user';
 import Styles from "./components/styles";
 import Style from "./components/style";
@@ -76,7 +76,7 @@ class App extends Component {
           <Route path="/user" element={<User user={this.state.user} />}></Route>
           <Route path="/products" element={<Products user={this.state.user} />}></Route>
           <Route path="/products/:id" element={<Product user={this.state.user} />}></Route>
-          <Route path="/add_product" element={<AddProducts user={this.state.user} />}></Route>
+          <Route path="/add_style" element={<AddStyle user={this.state.user} />}></Route>
           <Route path="/styles" element={<Styles user={this.state.user} />}></Route>
           <Route path="/styles/:id" element={<Style user={this.state.user} />}></Route>
           <Route path="/my_styles" element={<MyStyles user={this.state.user} />}></Route>

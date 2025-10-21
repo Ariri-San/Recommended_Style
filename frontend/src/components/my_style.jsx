@@ -85,46 +85,55 @@ function MyStyle() {
         const newPaths = [];
 
         styleData.predicts.forEach((predict) => {
-        const predEl = predictRefs.current[predict.id];
-        const cropEl = cropRefs.current[predict.id];
-        if (!predEl || !cropEl) return;
+       const predEl = predictRefs.current[predict.id];
+            const cropEl = cropRefs.current[predict.id];
+            if (!predEl || !cropEl) return;
 
-        const pRect = predEl.getBoundingClientRect();
-        const cRect = cropEl.getBoundingClientRect();
+            const pRect = predEl.getBoundingClientRect();
+            const cRect = cropEl.getBoundingClientRect();
 
-        const sx = pRect.left + pRect.width - containerRect.left;
-        const sy = pRect.top + pRect.height / 2 - containerRect.top;
-        const ex = cRect.left - containerRect.left;
-        const ey = cRect.top + cRect.height / 2 - containerRect.top;
+            // center points (you can adjust attach point if you want top/right etc.)
+            const startX = pRect.left + pRect.width; // right edge of predict-box
+            const startY = pRect.top + pRect.height / 2;
 
-        // 🔸 Zigzag connection path
-        const midX1 = sx + (ex - sx) * 0.25;
-        const midX2 = sx + (ex - sx) * 0.75;
-        const offsetY = (ey - sy) * 0.1;
+            const endX = cRect.left; // left edge of crop card
+            const endY = cRect.top + cRect.height / 2;
 
-        const d = `M ${sx},${sy}
-                    L ${midX1},${sy + offsetY}
-                    L ${midX2},${ey - offsetY}
-                    L ${ex},${ey}`;
+            // convert to container-local coordinates
+            const sx = startX - containerRect.left;
+            const sy = startY - containerRect.top;
+            const ex = endX - containerRect.left;
+            const ey = endY - containerRect.top;
+
+            // broken / zigzag line path (like circuit wires)
+            const midX1 = sx + (ex - sx) * 0.25;
+            const midX2 = sx + (ex - sx) * 0.75;
+            const offsetY = (ey - sy) * 0.1; // small vertical offset for bend
+
+            const d = `M ${sx},${sy}
+                L ${midX1},${sy + offsetY}
+                L ${midX2},${ey - offsetY}
+                L ${ex},${ey}`;
         newPaths.push({ id: predict.id, d, active: selectedPredict?.id === predict.id });
         });
 
         setPaths(newPaths);
     }, [styleData, selectedPredict]);
 
+    // update paths on data change, selection change, resize, scroll
     useEffect(() => {
         updatePaths();
-    }, [styleData, selectedPredict, imageSize, updatePaths]);
-
-    // 🔹 Recalculate on resize / scroll
+    }, [styleData, selectedPredict, updatePaths, handleImageLoad]);
+    
     useEffect(() => {
         if (!containerRef.current) return;
+        // handlers
         const onResize = () => updatePaths();
         const onScroll = () => updatePaths();
 
         window.addEventListener("resize", onResize);
-        window.addEventListener("scroll", onScroll, true);
-
+        window.addEventListener("scroll", onScroll, true); // true so captures scroll in ancestors
+        // also observe container resize (handles image load / layout changes)
         let ro = null;
         if (window.ResizeObserver && containerRef.current) {
         ro = new ResizeObserver(() => updatePaths());
@@ -155,30 +164,30 @@ function MyStyle() {
 
                     {/* 🔹 Predict boxes with scaling */}
                     {styleData.predicts.map((predict) => {
-                    const box = predict.bounding_box;
-                    const isActive = selectedPredict?.id === predict.id;
+                        const box = predict.bounding_box;
+                        const isActive = selectedPredict?.id === predict.id;
 
-                    const scaleX = imageSize.renderedWidth / imageSize.naturalWidth;
-                    const scaleY = imageSize.renderedHeight / imageSize.naturalHeight;
+                        const scaleX = imageSize.renderedWidth / imageSize.naturalWidth;
+                        const scaleY = imageSize.renderedHeight / imageSize.naturalHeight;
 
-                    const left = box.x1 * scaleX;
-                    const top = box.y1 * scaleY;
-                    const width = (box.x2 - box.x1) * scaleX;
-                    const height = (box.y2 - box.y1) * scaleY;
+                        const left = box.x1 * scaleX;
+                        const top = box.y1 * scaleY;
+                        const width = (box.x2 - box.x1) * scaleX;
+                        const height = (box.y2 - box.y1) * scaleY;
 
-                    return (
-                        <div
-                        key={predict.id}
-                        ref={(el) => (predictRefs.current[predict.id] = el)}
-                        className={`predict-box ${isActive ? "active" : ""}`}
-                        style={{ left, top, width, height }}
-                        onClick={() =>
-                            setSelectedPredict((prev) =>
-                            prev?.id === predict.id ? null : predict
-                            )
-                        }
-                        />
-                    );
+                        return (
+                            <div
+                                key={predict.id}
+                                ref={(el) => (predictRefs.current[predict.id] = el)}
+                                className={`predict-box ${isActive ? "active" : ""}`}
+                                style={{ left, top, width, height }}
+                                onClick={() =>
+                                    setSelectedPredict((prev) =>
+                                    prev?.id === predict.id ? null : predict
+                                    )
+                                }
+                            />
+                        );
                     })}
                 </div>
                 </div>

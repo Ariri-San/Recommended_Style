@@ -76,6 +76,36 @@ function TestStyle() {
         setTimeout(updatePaths, 100);
     };
 
+    useEffect(() => {
+        const updateImageSize = () => {
+            const img = imageRef.current;
+            if (!img) return;
+            setImageSize({
+            naturalWidth: img.naturalWidth || 1,
+            naturalHeight: img.naturalHeight || 1,
+            renderedWidth: img.clientWidth || 1,
+            renderedHeight: img.clientHeight || 1,
+            });
+        };
+
+        // وقتی عکس لود یا resize شد
+        const img = imageRef.current;
+        if (img && img.complete) updateImageSize();
+        else img?.addEventListener("load", updateImageSize);
+
+        window.addEventListener("resize", updateImageSize);
+
+        // برای ریسپانسیو container
+        const ro = new ResizeObserver(updateImageSize);
+        if (img) ro.observe(img);
+
+        return () => {
+            img?.removeEventListener("load", updateImageSize);
+            window.removeEventListener("resize", updateImageSize);
+            ro.disconnect();
+        };
+    }, []);
+
     // 🔹 Draw connecting lines between predict boxes & crops
     const updatePaths = useCallback(() => {
         if (!results || !containerRef.current) return;
@@ -84,28 +114,28 @@ function TestStyle() {
         const newPaths = [];
 
         results.forEach((predict) => {
-        const predEl = predictRefs.current[predict.crop_name];
-        const cropEl = cropRefs.current[predict.crop_name];
-        if (!predEl || !cropEl) return;
+            const predEl = predictRefs.current[predict.crop_name];
+            const cropEl = cropRefs.current[predict.crop_name];
+            if (!predEl || !cropEl) return;
 
-        const pRect = predEl.getBoundingClientRect();
-        const cRect = cropEl.getBoundingClientRect();
+            const pRect = predEl.getBoundingClientRect();
+            const cRect = cropEl.getBoundingClientRect();
 
-        const sx = pRect.left + pRect.width - containerRect.left;
-        const sy = pRect.top + pRect.height / 2 - containerRect.top;
-        const ex = cRect.left - containerRect.left;
-        const ey = cRect.top + cRect.height / 2 - containerRect.top;
+            const sx = pRect.left + pRect.width - containerRect.left;
+            const sy = pRect.top + pRect.height / 2 - containerRect.top;
+            const ex = cRect.left - containerRect.left;
+            const ey = cRect.top + cRect.height / 2 - containerRect.top;
 
-        // 🔸 Zigzag connection path
-        const midX1 = sx + (ex - sx) * 0.25;
-        const midX2 = sx + (ex - sx) * 0.75;
-        const offsetY = (ey - sy) * 0.1;
+            // 🔸 Zigzag connection path
+            const midX1 = sx + (ex - sx) * 0.25;
+            const midX2 = sx + (ex - sx) * 0.75;
+            const offsetY = (ey - sy) * 0.1;
 
-        const d = `M ${sx},${sy}
-                    L ${midX1},${sy + offsetY}
-                    L ${midX2},${ey - offsetY}
-                    L ${ex},${ey}`;
-        newPaths.push({ id: predict.crop_name, d, active: selectedPredict?.crop_name === predict.crop_name });
+            const d = `M ${sx},${sy}
+                        L ${midX1},${sy + offsetY}
+                        L ${midX2},${ey - offsetY}
+                        L ${ex},${ey}`;
+            newPaths.push({ id: predict.crop_name, d, active: selectedPredict?.crop_name === predict.crop_name });
         });
 
         setPaths(newPaths);
@@ -202,30 +232,32 @@ function TestStyle() {
 
                         {/* 🔹 Predict boxes with scaling */}
                         {results.map((predict) => {
-                        const box = predict.bounding_box;
-                        const isActive = selectedPredict?.crop_name === predict.crop_name;
+                            const box = JSON.parse(predict.bounding_box);
+                            const isActive = selectedPredict?.crop_name === predict.crop_name;
 
-                        const scaleX = imageSize.renderedWidth / imageSize.naturalWidth;
-                        const scaleY = imageSize.renderedHeight / imageSize.naturalHeight;
+                            const scaleX = imageSize.renderedWidth / imageSize.naturalWidth;
+                            const scaleY = imageSize.renderedHeight / imageSize.naturalHeight;
 
-                        const left = box.x1 * scaleX;
-                        const top = box.y1 * scaleY;
-                        const width = (box.x2 - box.x1) * scaleX;
-                        const height = (box.y2 - box.y1) * scaleY;
+                            const left = box.x1 * scaleX;
+                            const top = box.y1 * scaleY;
+                            const width = (box.x2 - box.x1) * scaleX;
+                            const height = (box.y2 - box.y1) * scaleY;
 
-                        return (
-                            <div
-                            key={predict.crop_name}
-                            ref={(el) => (predictRefs.current[predict.crop_name] = el)}
-                            className={`predict-box ${isActive ? "active" : ""}`}
-                            style={{ left, top, width, height }}
-                            onClick={() =>
-                                setSelectedPredict((prev) =>
-                                prev?.crop_name === predict.crop_name ? null : predict
-                                )
-                            }
-                            />
-                        );
+                            // console.log(box, box.x1, width, height);
+
+                            return (
+                                <div
+                                    key={predict.crop_name}
+                                    ref={(el) => (predictRefs.current[predict.crop_name] = el)}
+                                    className={`predict-box ${isActive ? "active" : ""}`}
+                                    style={{ left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` }}
+                                    onClick={() =>
+                                        setSelectedPredict((prev) =>
+                                        prev?.crop_name === predict.crop_name ? null : predict
+                                        )
+                                    }
+                                />
+                            );
                         })}
                     </div>
                     </div>

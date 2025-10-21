@@ -4,8 +4,6 @@ import Joi, { errors } from "joi-browser";
 import Form from "../../base/form.jsx";
 import request from "../../services/requestService.js";
 import { toast } from "react-toastify";
-import InventoryForm from "./inventoryForm.jsx";
-
 
 
 

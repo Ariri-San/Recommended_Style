@@ -8,7 +8,6 @@ import DeleteData from './../base/deleteData';
 import request from "../services/requestService"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEdit } from '@fortawesome/free-solid-svg-icons'
-import InventoryForm from "./forms/inventoryForm";
 
 
 
@@ -100,32 +99,6 @@ function showInventories(items, params, navigate, state, setState) {
                 >
                     ALL
                 </div>
-            </div>
-
-            {/* نمایش فرم تغییر تعداد یا مجموع */}
-            <div className="inventory-options">
-                {state.selected_color === "all" || state.selected_size === "all" ? (
-                    <h4>مجموع موجودی: {totalInventory}</h4>
-                ) : selectedInventory ? (
-                    <InventoryForm
-                        id={selectedInventory.id}
-                        color_id={selectedInventory.color.id}
-                        size_id={selectedInventory.size.id}
-                        number={selectedInventory.number}
-                        navigate={navigate}
-                        message="موجودی تغیر کرد"
-                        urlForm={`shop/products/${params.id}/inventories/`}
-                    />
-                ) : (
-                    <InventoryForm
-                        color_id={state.selected_color.id}
-                        size_id={state.selected_size.id}
-                        number={0}
-                        message="موجودی جدید اضاف شد"
-                        navigate={navigate}
-                        urlForm={`shop/products/${params.id}/inventories/`}
-                    />
-                )}
             </div>
         </div>
     );

@@ -22,6 +22,6 @@ class UserSerializer(BaseUserSerializer):
 
 class SimpleUserSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id', 'username', 'email', "image"]
+        fields = ['id', 'username', 'email', "image", "is_man"]
 
 

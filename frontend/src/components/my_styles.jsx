@@ -101,8 +101,8 @@ function StyleCard({ style }) {
                     <h5 className="text-uppercase">
                         {style.user.username}
                     </h5>
-                    <span className="text-primary-2" style={{ color: colorGender(style.is_man) }}>
-                        جنسیت : {showStatusGender(style.is_man)}
+                    <span className="text-primary-2" style={{ color: colorGender(style.user.is_man) }}>
+                        جنسیت : {showStatusGender(style.user.is_man)}
                     </span>
                     <span className="text-primary-2">تعداد لایک : {style.likes}</span>
                 </div>
