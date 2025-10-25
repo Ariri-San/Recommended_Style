@@ -328,3 +328,98 @@
 .footer .copyright a:hover {
     color: var(--primary);
 }
+
+.hero-section {
+  background: linear-gradient(135deg, #111, #222);
+  min-height: 100vh;
+  background-image: url("../img/hero-bg.jpg");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+.hero-section .container {
+  position: relative;
+  z-index: 2;
+}
+
+.features-section {
+  background: linear-gradient(135deg, #191919, #222);
+}
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.3s;
+  height: 100%;
+}
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-5px);
+}
+.feature-icon {
+  width: 60px;
+  height: 60px;
+}
+
+/* Animations */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 1s ease forwards;
+}
+.fade-in-delayed {
+  opacity: 0;
+  animation: fadeIn 1s ease 0.5s forwards;
+}
+.fade-in-step {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeUp 1.2s ease forwards;
+}
+.fade-in-step:nth-child(1) {
+  animation-delay: 0.2s;
+}
+.fade-in-step:nth-child(2) {
+  animation-delay: 0.4s;
+}
+.fade-in-step:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#project-details {
+  background: linear-gradient(180deg, #111, #151515);
+  padding-bottom: 80px;
+}
+#project-details h4 {
+  color: #ffcc66;
+}
+#project-details ul,
+#project-details ol {
+  text-align: right;
+  direction: rtl;
+  margin-right: 20px;
+}
+#project-details li {
+  margin-bottom: 8px;
+}
+.text-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 20px;
+}
+
