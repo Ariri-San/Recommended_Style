@@ -13,15 +13,19 @@ function Home(props) {
         {/* ---------- Hero Section ---------- */}
         <section className="hero-section d-flex align-items-center text-center text-white">
             <div className="container">
-            <h1 className="display-4 fw-bold mb-3 fade-in">
+            <div className="hero-inner">
+                <h1 className="display-4 fw-bold mb-3 fade-in">
                 استایل خودت رو با هوش مصنوعی کشف کن 👕✨
-            </h1>
-            <p className="lead fade-in-delayed">
+                </h1>
+                <p className="lead fade-in-delayed mb-3">
                 پلتفرمی هوشمند برای تحلیل لباس‌ها، مشاهده استایل‌ها و دریافت پیشنهادهای مخصوص سلیقه‌ی تو.
-            </p>
-            <a href="#project-info" className="btn btn-light mt-4 px-4 py-2">
-                بیشتر بدانید
-            </a>
+                </p>
+
+                <div className="hero-ctas d-flex justify-content-center gap-3 mt-4">
+                <a href="#style-test" className="btn btn-primary btn-lg px-4 py-2">آزمایش رایگان</a>
+                <a href="#project-info" className="btn btn-outline-light px-4 py-2">اطلاعات بیشتر</a>
+                </div>
+            </div>
             </div>
         </section>
 

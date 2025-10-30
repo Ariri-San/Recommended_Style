@@ -173,36 +173,32 @@ function TestStyle() {
 
         {/* فرم آپلود */}
         {!results && (
-            <form onSubmit={handleSubmit} className="upload-form">
-            <label className="upload-label">
-                انتخاب عکس:
-                <input type="file" accept="image/*" onChange={handleImageChange} />
-            </label>
+            <form onSubmit={handleSubmit} className="upload-form card p-4">
+            <div className="form-row d-flex flex-column align-items-center">
+                <label className="upload-label btn btn-outline-primary">
+                <input type="file" accept="image/*" onChange={handleImageChange} style={{display: "none"}} />
+                انتخاب/آپلود عکس
+                </label>
 
-            <div className="gender-select">
-                <label>
-                <input
-                    type="radio"
-                    value="true"
-                    checked={isMan}
-                    onChange={() => setIsMan(true)}
-                />
-                مردانه
+                {imageFile && <div className="mt-2 small text-muted">فایل انتخاب‌شده: {imageFile.name}</div>}
+
+                <div className="gender-select mt-3 d-flex gap-3">
+                <label className="btn btn-sm btn-outline-secondary">
+                    <input type="radio" name="gender" value="true" checked={isMan} onChange={() => setIsMan(true)} style={{marginLeft:8}} />
+                    مردانه
                 </label>
-                <label>
-                <input
-                    type="radio"
-                    value="false"
-                    checked={!isMan}
-                    onChange={() => setIsMan(false)}
-                />
-                زنانه
+                <label className="btn btn-sm btn-outline-secondary">
+                    <input type="radio" name="gender" value="false" checked={!isMan} onChange={() => setIsMan(false)} style={{marginLeft:8}} />
+                    زنانه
                 </label>
+                </div>
+
+                <button type="submit" className="btn btn-primary mt-3" disabled={!imageFile || loading}>
+                {loading ? "در حال پردازش..." : "ارسال برای تحلیل"}
+                </button>
             </div>
 
-            <button type="submit" disabled={!imageFile || loading}>
-                {loading ? "در حال پردازش..." : "ارسال"}
-            </button>
+            {loading && <div className="loading-overlay">در حال پردازش تصویر...</div>}
             </form>
         )}
 
@@ -217,9 +213,13 @@ function TestStyle() {
             </div>
         )}
 
-        {/* نمایش نتایج */}
-        {results && (
-            // <div className="style-page-center">
+{/* نمایش نتایج */}
+{results && (
+            <>
+            <div className="results-header mb-3 text-center">
+                <h3 className="mb-0">نتایج تحلیل ({results.length})</h3>
+                <p className="text-muted small">روی یک پیش‌بینی کلیک کنید تا محصولات مشابه نمایش داده شوند.</p>
+            </div>
                 <div className="style-page" ref={containerRef}>
                     {/* 🔹 Left: Main Image */}
                     <div className="style-left">
@@ -328,7 +328,7 @@ function TestStyle() {
                     ))}
                     </svg>
                 </div>
-            // </div>
+            </>
         )}
         </div>
     );

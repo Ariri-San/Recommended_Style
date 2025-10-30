@@ -21,10 +21,15 @@ function showDateTime(date_time){
 }
 
 
-async function setData(setState, state, url, id) {
+async function addProduct(product, predict, id, styleData, setStyleData) {
     try {
-        const response = await request.getObjects(url, id);
-        return setState({ data: response.data });
+        request.saveObject({"product": product.id}, "api/my_styles/"+id+"/predicts/", predict.id);
+        styleData.predicts.map((predict_c) => {
+            if (predict_c.id == predict.id){
+                predict_c.product = product;
+            }
+        });
+        setStyleData({...styleData});
     } catch (error) {
         if (error.data) request.showError(error);
     }
@@ -36,7 +41,7 @@ async function fetchStyle(id) {
   return response.data;
 }
 
-function MyStyle() {
+function MyStyle({user}) {
     const params = useParams();
     const location = useLocation();
 
@@ -69,10 +74,10 @@ function MyStyle() {
     const handleImageLoad = (e) => {
         const img = e.target;
         setImageSize({
-        naturalWidth: img.naturalWidth,
-        naturalHeight: img.naturalHeight,
-        renderedWidth: img.clientWidth,
-        renderedHeight: img.clientHeight,
+            naturalWidth: img.naturalWidth,
+            naturalHeight: img.naturalHeight,
+            renderedWidth: img.clientWidth,
+            renderedHeight: img.clientHeight,
         });
         setTimeout(updatePaths, 100);
     };
@@ -123,7 +128,7 @@ function MyStyle() {
     // update paths on data change, selection change, resize, scroll
     useEffect(() => {
         updatePaths();
-    }, [styleData, selectedPredict, updatePaths, handleImageLoad]);
+    }, [styleData, selectedPredict, updatePaths]);
     
     useEffect(() => {
         if (!containerRef.current) return;
@@ -141,11 +146,11 @@ function MyStyle() {
         }
 
         return () => {
-        window.removeEventListener("resize", onResize);
-        window.removeEventListener("scroll", onScroll, true);
+            window.removeEventListener("resize", onResize);
+            window.removeEventListener("scroll", onScroll, true);
         if (ro) ro.disconnect();
         };
-    }, [updatePaths]);
+    }, [updatePaths, handleImageLoad]);
 
     if (!styleData) return null;
 
@@ -156,10 +161,12 @@ function MyStyle() {
                 <div className="style-left">
                 <div className="image-wrapper">
                     <img
-                    className="style-image"
-                    src={styleData.image_local || styleData.image}
-                    alt={styleData.user.username}
-                    onLoad={handleImageLoad}
+                        ref={containerRef}
+                        className="style-image"
+                        src={styleData.image_local || styleData.image}
+                        alt={styleData.user.username}
+                        onLoad={handleImageLoad}
+                        onClick={handleImageLoad}
                     />
 
                     {/* 🔹 Predict boxes with scaling */}
@@ -221,24 +228,40 @@ function MyStyle() {
 
                 {/* 🔹 Right: Products */}
                 <div className="style-right">
-                <h4>محصولات مشابه</h4>
-                {selectedPredict ? (
-                    <div className="products-grid">
-                    {selectedPredict.detected_products.map((p) => (
-                        <div key={p.id} className="product-card">
-                        <a href={p.url} target="_blank" rel="noopener noreferrer">
-                            <img src={p.image_local || p.image} alt={p.title} />
-                        </a>
-                        <div className="product-title">{p.title}</div>
-                        <div className="product-price">
-                            {p.price ? p.price.toLocaleString("fa-IR") + " تومان" : ""}
+                    <h4>محصولات مشابه</h4>
+                    {selectedPredict ? (
+                        <div className="products-grid">
+                            {selectedPredict.product ? (
+                                    <div>
+                                        <a href={selectedPredict.product.url} target="_blank" rel="noopener noreferrer">
+                                            <img className="product-image" src={selectedPredict.product.image_local || selectedPredict.product.image} alt={selectedPredict.product.title} />
+                                        </a>
+                                        <div className="product-title">{selectedPredict.product.title}</div>
+                                        <div className="product-price">
+                                            {selectedPredict.product.price ? selectedPredict.product.price.toLocaleString("fa-IR") + " تومان" : ""}
+                                        </div>
+                                        <hr />
+                                    </div>
+                                ) : ""
+                            }
+                            {selectedPredict.detected_products.map((p) => (
+                                <div key={p.id} className="product-card">
+                                    <a href={p.url} target="_blank" rel="noopener noreferrer">
+                                        <img src={p.image_local || p.image} alt={p.title} />
+                                    </a>
+                                    <div className="product-title">{p.title}</div>
+                                    <div className="product-price">
+                                        {p.price ? p.price.toLocaleString("fa-IR") + " تومان" : ""}
+                                    </div>
+                                    <div>
+                                        <button className="product-button" onClick={() =>addProduct(p, selectedPredict, params.id, styleData, setStyleData)}>انتخاب محصول</button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        </div>
-                    ))}
-                    </div>
-                ) : (
-                    ""
-                )}
+                    ) : (
+                        ""
+                    )}
                 </div>
 
                 {/* 🔹 SVG Connections */}
