@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback  } from "react";
-import { useNavigate, useLocation, useParams } from "react-router";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import request from "../services/requestService";
+
 
 function TestStyle() {
     const params = useParams();
@@ -213,8 +214,8 @@ function TestStyle() {
             </div>
         )}
 
-{/* نمایش نتایج */}
-{results && (
+        {/* نمایش نتایج */}
+        {results && (
             <>
             <div className="results-header mb-3 text-center">
                 <h3 className="mb-0">نتایج تحلیل ({results.length})</h3>

@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import auth from "../services/authService";
 // import { NavLink } from "react-router-dom";
 import RegisterForm from "./forms/registerForm";
