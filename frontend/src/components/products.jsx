@@ -26,7 +26,7 @@ function showProducts(items, state, setState) {
             return (
                 <div className="col-lg-3 col-md-6 wow fadeInUp" data-wow-delay="0.3s">
                     <div className="team-item" >
-                        <NavLink to={"/products/" + item.id} onClick={state.selecting ? (e) => e.preventDefault() : ""}>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer">
                             <div className="team-img position-relative overflow-hidden">
                                 <img className="img-fluid" src={item.image_local} alt=""/>
                                 <div className="team-social" style={{display:"flex", flexDirection: "column"}}>
@@ -34,13 +34,13 @@ function showProducts(items, state, setState) {
                                     <FontAwesomeIcon icon={faEdit} size="2x" color="#9844d4bd"/>
                                 </div>
                             </div>
-                        </NavLink>
+                        </a>
                         <div className="bg-secondary text-center p-4" style={{display: "flex", flexDirection: "column"}}>
                             <h5 className="text-uppercase">{item.title}</h5>
                             <span className="text-primary-2" style={{ color: colorGender(item.is_man) }}>
                                 جنسیت : {showStatusGender(item.is_man)}
                             </span>
-                            <span className="text-primary-2">قیمت : {item.price}</span>
+                            <span className="text-primary-2">قیمت : {item.price.toLocaleString("fa-IR")}</span>
                             {state.selecting ?
                                 <input
                                     type="checkbox"

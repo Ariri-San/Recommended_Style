@@ -25,7 +25,7 @@ async function addProduct(product, predict, id, styleData, setStyleData) {
     try {
         request.saveObject({"product": product.id}, "api/my_styles/"+id+"/predicts/", predict.id);
         styleData.predicts.map((predict_c) => {
-            if (predict_c.id == predict.id){
+            if (predict_c.id === predict.id){
                 predict_c.product = product;
             }
         });
@@ -253,9 +253,11 @@ function MyStyle({user}) {
                                     <div className="product-price">
                                         {p.price ? p.price.toLocaleString("fa-IR") + " تومان" : ""}
                                     </div>
-                                    <div>
-                                        <button className="product-button" onClick={() =>addProduct(p, selectedPredict, params.id, styleData, setStyleData)}>انتخاب محصول</button>
-                                    </div>
+                                    { user.id === styleData.user.id ? 
+                                        <div>
+                                            <button className="product-button" onClick={() =>addProduct(p, selectedPredict, params.id, styleData, setStyleData)}>انتخاب محصول</button>
+                                        </div>
+                                    : "" }
                                 </div>
                             ))}
                         </div>
