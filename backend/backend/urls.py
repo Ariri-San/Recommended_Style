@@ -26,14 +26,15 @@ urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
     
+    path('', include('frontend.urls')),
     path('core/', include('core.urls')),
     path('api/', include('get_data.urls')),
     path('likes/', include('likes.urls')),
     
 ]
 
-if settings.DEBUG:
-    urlpatterns += debug_toolbar_urls()
+# if settings.DEBUG:
+#     urlpatterns += debug_toolbar_urls()
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

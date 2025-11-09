@@ -18,10 +18,9 @@ import "./css/styles.css";
 
 
 // Import Js Functions
-// External scripts should be included via `public/index.html` <script> tags instead of ES imports.
-// For example, add the following to `public/index.html` inside <head> or before </body>:
-// <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-// <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+// import "https://code.jquery.com/jquery-3.4.1.min.js"
+// import "https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"
+// import "./templates/js/main.js";
 // import "./templates/lib/wow/wow.min.js";
 
 // Import Web Pages

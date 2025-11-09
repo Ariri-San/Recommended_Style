@@ -254,6 +254,17 @@ class FindSimilarProducts:
             self.schp_model.to(self.device).eval()
             
             self.classifier = ClipZeroShotClassifier(device=self.device)
+            # Cache models so subsequent instances reuse them (avoid re-loading heavy weights)
+            _MODELS_CACHE['schp_model'] = self.schp_model
+            _MODELS_CACHE['classifier'] = self.classifier
+            # Optionally cache frequently used DB lists to avoid per-request queries
+            try:
+                self._categories_cache = list(Category.objects.all().order_by("title"))
+                self._colors_cache = list(Color.objects.all().order_by("title"))
+            except Exception:
+                # If DB isn't ready (e.g., migrations), fall back to empty lists
+                self._categories_cache = []
+                self._colors_cache = []
         else:
             self.schp_model = _MODELS_CACHE['schp_model']
             self.classifier = _MODELS_CACHE['classifier']
@@ -365,6 +376,69 @@ class FindSimilarProducts:
 
         return detected
 
+    def _build_product_embeddings_cache(self, emb_dim, category=None, is_man=None):
+        """
+        Build (and cache) normalized embeddings matrix and product list for a given embedding dim,
+        optionally filtered by category and is_man. This avoids reloading/parsing DB embeddings each call.
+        """
+        global _MODELS_CACHE
+        cache_root = _MODELS_CACHE.setdefault('product_embs', {})
+        cat_id = 'all' if category is None else getattr(category, 'id', str(category))
+        is_man_key = 'any' if is_man is None else int(is_man)
+        key = f"{emb_dim}_{cat_id}_{is_man_key}"
+        if key in cache_root:
+            entry = cache_root[key]
+            return entry['embs'], entry['products']
+
+        qs = ProductPredict.objects.all() if is_man is None else ProductPredict.objects.filter(product__is_man=is_man)
+        if category:
+            qs = qs.filter(category=category)
+
+        embs = []
+        products = []
+        for p in qs:
+            # Preserve original behavior: if model stored image_embedding_dim, respect it
+            if hasattr(p, "image_embedding_dim") and p.image_embedding_dim is not None:
+                if p.image_embedding_dim != emb_dim:
+                    continue
+            if not getattr(p, "image_embedding", None):
+                continue
+            raw_emb = p.image_embedding
+            vec = None
+            # Accept several formats: JSON string, Python list, numpy array
+            if isinstance(raw_emb, str):
+                try:
+                    vec = np.array(json.loads(raw_emb), dtype=np.float32)
+                except Exception:
+                    try:
+                        vec = np.array(eval(raw_emb), dtype=np.float32)
+                    except Exception:
+                        # unable to parse, skip
+                        continue
+            elif isinstance(raw_emb, (list, tuple)):
+                vec = np.array(raw_emb, dtype=np.float32)
+            elif isinstance(raw_emb, np.ndarray):
+                vec = raw_emb.astype(np.float32)
+            else:
+                # unknown format, skip
+                continue
+            if vec is None or vec.shape[0] != emb_dim:
+                continue
+            norm = np.linalg.norm(vec)
+            if norm == 0:
+                continue
+            vec = vec / norm
+            embs.append(vec)
+            products.append(p.product)
+
+        if not embs:
+            cache_root[key] = {'embs': None, 'products': []}
+            return None, []
+
+        emb_matrix = np.vstack(embs)  # shape (N, D)
+        cache_root[key] = {'embs': emb_matrix, 'products': products}
+        return emb_matrix, products
+
 
     def _generate_embedding(self, img_input):
         img = Image.open(img_input).convert('RGB') if isinstance(img_input,str) else img_input
@@ -374,22 +448,27 @@ class FindSimilarProducts:
         return emb, emb.shape[0]
 
     def _find_similar_products(self, query_emb, emb_dim, category=None, is_man=None, top_n=30):
-        product_predicts = ProductPredict.objects.all() if not is_man else ProductPredict.objects.filter(product__is_man=is_man)
-        product_predicts = product_predicts if not category else product_predicts.filter(category=category)
-        
-        db_embs = []
-        db_products = []
-        for product_predict in product_predicts:
-            if product_predict.image_embedding and product_predict.image_embedding_dim == emb_dim:
-                # print(product_predict.image_embedding_dim)
-                # print(emb_dim)
-                try:
-                    db_embs.append(product_predict.image_embedding)
-                    db_products.append(product_predict.product)
-                except: continue
-        if not db_embs: return []
-        
-        sims = cosine_similarity([query_emb], np.array(db_embs))[0]
-        top_idx = sims.argsort()[-top_n:][::-1]
-        
-        return [db_products[i] for i in top_idx]
+        # Use cached embedding matrix if available (faster than per-row JSON parsing + sklearn)
+        emb_matrix, products = self._build_product_embeddings_cache(emb_dim, category=category, is_man=is_man)
+        if emb_matrix is None:
+            return []
+
+        q = np.array(query_emb, dtype=np.float32)
+        qnorm = np.linalg.norm(q)
+        if qnorm == 0:
+            return []
+        q = q / qnorm  # ensure unit vector for cosine similarity -> dot product
+
+        # fast dot product: (N, D) dot (D,) -> (N,)
+        sims = emb_matrix.dot(q)
+
+        # use argpartition for faster top-k when N large
+        N = sims.shape[0]
+        if top_n < N:
+            idxs = np.argpartition(-sims, top_n)[:top_n]
+            # sort the top indexes
+            idxs = idxs[np.argsort(-sims[idxs])]
+        else:
+            idxs = np.argsort(-sims)
+
+        return [products[i] for i in idxs]

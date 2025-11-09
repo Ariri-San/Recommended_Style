@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     
     
     # Custom Apps
+    "frontend",
     "schp",
     "core",
     "get_data",
@@ -66,7 +67,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",  # debug_toolbar
+    # "debug_toolbar.middleware.DebugToolbarMiddleware",  # debug_toolbar
     "corsheaders.middleware.CorsMiddleware",  # corsheaders
 ]
 
@@ -97,7 +98,7 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "data/db.sqlite3",
     }
 }
 
