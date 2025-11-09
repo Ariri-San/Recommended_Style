@@ -1,0 +1,34 @@
+Django>=4.2
+djangorestframework==3.14.0
+# JWT for DRF
+djangorestframework-simplejwt
+# CORS and filtering
+django-cors-headers==4.3.1
+django-filter
+# Authentication helpers
+djoser
+django-debug-toolbar
+# ColorField used in models
+django-colorfield
+# Image / array processing
+pillow==10.1.0
+numpy==1.24.3
+scikit-learn
+opencv-python==4.4.0.46
+
+# Deep learning / vision (may require CUDA-specific installation)
+# Use CPU-only PyTorch wheels. This file adds the extra index URL below so pip installs CPU builds.
+# Pin versions to the previously-commented ones but with +cpu suffix.
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
+# NOTE: pip needs the PyTorch CPU wheel index to install the +cpu builds.
+# The extra index URL is added at the top of this requirements file.
+# open-clipped models used via `open_clip` import in scripts
+open-clip-torch
+
+# Utilities used in scripts
+requests
+python-decouple==3.8
+tqdm
+fvcore
+pyyaml
