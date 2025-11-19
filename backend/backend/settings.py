@@ -193,3 +193,5 @@ DJOSER = {
         'current_user': 'core.serializers.UserSerializer',
     }
 }
+
+SCHP_CHECKPOINT_URL="https://huggingface.co/levihsu/OOTDiffusion/resolve/main/checkpoints/humanparsing/exp-schp-201908301523-atr.pth"

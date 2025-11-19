@@ -14,6 +14,7 @@ from datetime import timedelta
 from PIL import Image, ImageOps
 import numpy as np
 import json
+import requests
 import torch
 import cv2
 import io
@@ -240,15 +241,42 @@ class FindSimilarProducts:
             # مدل رو بدون pretrained اولیه بساز
             self.schp_model = resnet101(pretrained=None, num_classes=18)
             
-            # حذف "module." از کلیدهای state_dict
-            checkpoint = torch.load("backend/schp/checkpoints/exp-schp-201908301523-atr.pth", map_location=self.device)
-            state_dict = checkpoint["state_dict"]
-            new_state_dict = OrderedDict()
-            for k, v in state_dict.items():
-                name = k.replace("module.", "")  # پاک کردن module.
-                new_state_dict[name] = v
+            ckpt_path = os.path.join("backend", "schp", "checkpoints", "exp-schp-201908301523-atr.pth")
+            # If checkpoint file missing, try to download from a configured URL (settings.SCHP_CHECKPOINT_URL
+            # or env var SCHP_CHECKPOINT_URL). This allows repositories to avoid committing large checkpoint files.
+            if not os.path.exists(ckpt_path):
+                download_url = getattr(settings, "SCHP_CHECKPOINT_URL", None) or os.environ.get("SCHP_CHECKPOINT_URL")
+                if download_url:
+                    try:
+                        os.makedirs(os.path.dirname(ckpt_path), exist_ok=True)
+                        print(f"Checkpoint not found locally. Downloading from {download_url} ...")
+                        with requests.get(download_url, stream=True, timeout=120) as r:
+                            r.raise_for_status()
+                            with open(ckpt_path, "wb") as fh:
+                                for chunk in r.iter_content(chunk_size=8192):
+                                    if chunk:
+                                        fh.write(chunk)
+                        print(f"Downloaded checkpoint to {ckpt_path}")
+                    except Exception as e:
+                        print(f"Failed to download checkpoint from {download_url}: {e}")
+                else:
+                    print(f"Checkpoint not found at {ckpt_path} and no SCHP_CHECKPOINT_URL configured. Continuing without weights.")
 
-            self.schp_model.load_state_dict(new_state_dict, strict=False)
+            if os.path.exists(ckpt_path):
+                try:
+                    checkpoint = torch.load(ckpt_path, map_location=self.device)
+                    # Some checkpoints store a dict with "state_dict", others are raw state_dicts
+                    state_dict = checkpoint.get("state_dict", checkpoint) if isinstance(checkpoint, dict) else checkpoint
+                    new_state_dict = OrderedDict()
+                    for k, v in state_dict.items():
+                        name = k.replace("module.", "")  # پاک کردن module.
+                        new_state_dict[name] = v
+                    self.schp_model.load_state_dict(new_state_dict, strict=False)
+                except Exception as e:
+                    print(f"Failed to load checkpoint {ckpt_path}: {e}. Continuing without loading weights.")
+            else:
+                # No checkpoint available; continue with uninitialized model (as before).
+                pass
 
             # مدل رو ببر روی GPU یا CPU و eval کن
             self.schp_model.to(self.device).eval()

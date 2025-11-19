@@ -3,7 +3,7 @@ venv/
 # */static/
 */data/
 **/__pycache__/
-
+schp/checkpoints/
 
 *.pyc
 .env
