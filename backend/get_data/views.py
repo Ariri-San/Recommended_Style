@@ -277,7 +277,20 @@ class FindSimilarProductsView(APIView):
 
         # compute how many top results we need to cover the requested page
         max_needed = page_n * top_n
-        products_all = find_similar_products(json.loads(data["embedding"]), category=data["category"], is_man=data["is_man"], top_n=max_needed)
+        category = data.get("category", None)
+        is_man = data.get("is_man", None)
+        # If category is an integer id, load the Category instance expected by the search function.
+        if category is not None and not isinstance(category, (dict, list)):
+            try:
+                # allow strings that are numeric
+                cat_id = int(category)
+                from get_data.models import Category as _Category
+                category = _Category.objects.filter(id=cat_id).first()
+            except Exception:
+                # if category is not a valid id, treat as no-category (None)
+                category = None
+
+        products_all = find_similar_products(json.loads(data["embedding"]), category=category, is_man=is_man, top_n=max_needed)
 
         # slice to requested page
         start = (page_n - 1) * top_n

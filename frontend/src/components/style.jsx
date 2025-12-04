@@ -23,9 +23,21 @@ function showDateTime(date_time){
 
 async function productsSimilar(predict, is_man, page_n = 1, top_n = 20, overrideCategoryId = null) {
     try {
+        // interpret overrideCategoryId:
+        // - "ALL" => no category filter (send null)
+        // - null/undefined => use predicted category
+        // - number => use that category id
+        let cat = null;
+        if (overrideCategoryId === "ALL") {
+            cat = null;
+        } else if (overrideCategoryId !== undefined && overrideCategoryId !== null) {
+            cat = overrideCategoryId;
+        } else {
+            cat = predict.category ? predict.category.id : null;
+        }
         const payload = {
             embedding: predict.image_embedding,
-            category: overrideCategoryId ?? (predict.category ? predict.category.id : null),
+            category: cat,
             is_man,
             page_n,
             top_n,
@@ -169,6 +181,7 @@ function Style() {
     function computeEffectiveIsMan() {
         if (genderMode === "male") return true;
         if (genderMode === "female") return false;
+        if (genderMode === "all") return null;
         return styleData?.is_man ?? false;
     }
 
@@ -338,9 +351,15 @@ function Style() {
                             دسته‌بندی:&nbsp;
                             <select
                                 value={ tempCategoryId !== null ? tempCategoryId : (appliedCategoryId !== null ? appliedCategoryId : "") }
-                                onChange={(e) => setTempCategoryId(e.target.value ? Number(e.target.value) : null)}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    if (v === "ALL") setTempCategoryId("ALL");
+                                    else if (v === "") setTempCategoryId(null);
+                                    else setTempCategoryId(Number(v));
+                                }}
                             >
-                                <option value="">(پیش‌بینی) {selectedPredict.category.title}</option>
+                                <option value="">{`(پیش‌بینی) ${selectedPredict.category.title}`}</option>
+                                <option value="ALL">همه</option>
                                 {categoriesList.map(c => (
                                     <option key={c.id} value={c.id}>{c.title}</option>
                                 ))}

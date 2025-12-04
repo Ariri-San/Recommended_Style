@@ -14,6 +14,7 @@ function TestStyle() {
     const [selectedPredict, setSelectedPredict] = useState(null);
     const [paths, setPaths] = useState([]);
     
+    
 
     const imageRef = useRef(null);
 
@@ -107,6 +108,8 @@ function TestStyle() {
         };
     }, []);
 
+    
+
     // 🔹 Draw connecting lines between predict boxes & crops
     const updatePaths = useCallback(() => {
         if (!results || !containerRef.current) return;
@@ -167,6 +170,8 @@ function TestStyle() {
         if (ro) ro.disconnect();
         };
     }, [updatePaths]);
+    console.log(selectedPredict);
+
 
     return (
         <div className="test-style-container">
@@ -221,7 +226,7 @@ function TestStyle() {
                 <h3 className="mb-0">نتایج تحلیل ({results.length})</h3>
                 <p className="text-muted small">روی یک پیش‌بینی کلیک کنید تا محصولات مشابه نمایش داده شوند.</p>
             </div>
-                <div className="style-page" ref={containerRef}>
+                <div className={`style-page ${selectedPredict && ((selectedPredict.products?.length || 0) === 0) ? "no-products" : ""}`} ref={containerRef}>
                     {/* 🔹 Left: Main Image */}
                     <div className="style-left">
                     <div className="image-wrapper">

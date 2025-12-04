@@ -253,7 +253,7 @@ class GetTestPredictStyleSerializer(serializers.Serializer):
         fields = ['is_man', 'image']
 
 class ShowTestPredictStyleSerializer(serializers.Serializer):
-    category = serializers.CharField(read_only=True)
+    category = CategorySerializer(read_only=True)
     predict_elapsed = serializers.DurationField(read_only=True)
     crop_name = serializers.CharField(read_only=True)
     crop_image = serializers.CharField(read_only=True)
@@ -266,10 +266,10 @@ class ShowTestPredictStyleSerializer(serializers.Serializer):
 
 class EmbeddingSerializer(serializers.Serializer):
     embedding = serializers.JSONField()
-    category = serializers.IntegerField(min_value=1)
+    category = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     top_n = serializers.IntegerField(required=False, default=20, min_value=1)
     page_n = serializers.IntegerField(required=False, default=1, min_value=1)
-    is_man = serializers.BooleanField()
+    is_man = serializers.BooleanField(required=False, allow_null=True)
     
     class Meta:
         fields = ['embedding', 'category', 'top_n', 'page_n', 'is_man']
