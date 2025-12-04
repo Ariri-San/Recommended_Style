@@ -30,6 +30,89 @@ from get_data.models import Style, Product, StylePredict, Category, ProductPredi
 _MODELS_CACHE = {}
 
 
+def find_similar_products(query_emb, category=None, is_man=None, top_n=30):
+    """
+    Faster, robust version of find_similar_products:
+    - parses various embedding formats (JSON string, list, numpy array)
+    - caches a normalized embedding matrix and product list in _MODELS_CACHE
+    - uses fast numpy dot + argpartition for top-k selection
+    Behavior preserves original filtering by category and is_man and returns the same products order for ties.
+    """
+    q_emb = np.asarray(query_emb, dtype=np.float32)
+    if q_emb.ndim != 1:
+        q_emb = q_emb.reshape(-1)
+    emb_dim = q_emb.shape[0]
+
+    global _MODELS_CACHE
+    cache_root = _MODELS_CACHE.setdefault("product_embs", {})
+    cat_id = "all" if category is None else getattr(category, "id", str(category))
+    is_man_key = "any" if is_man is None else int(is_man)
+    cache_key = f"{emb_dim}_{cat_id}_{is_man_key}"
+
+    if cache_key in cache_root:
+        emb_matrix = cache_root[cache_key]["embs"]
+        products = cache_root[cache_key]["products"]
+        if emb_matrix is None:
+            return []
+    else:
+        qs = ProductPredict.objects.all() if is_man is None else ProductPredict.objects.filter(product__is_man=is_man)
+        if category:
+            qs = qs.filter(category=category)
+        # preserve ORM ordering by materializing list
+        qs_list = list(qs)
+
+        embs_list = []
+        products = []
+        for p in qs_list:
+            raw = getattr(p, "image_embedding", None)
+            if raw is None:
+                continue
+            # try parsing common formats
+            vec = None
+            if isinstance(raw, str):
+                try:
+                    vec = np.array(json.loads(raw), dtype=np.float32)
+                except Exception:
+                    try:
+                        vec = np.array(eval(raw), dtype=np.float32)
+                    except Exception:
+                        continue
+            elif isinstance(raw, (list, tuple)):
+                vec = np.array(raw, dtype=np.float32)
+            elif isinstance(raw, np.ndarray):
+                vec = raw.astype(np.float32)
+            else:
+                continue
+
+            if vec is None or vec.shape[0] != emb_dim:
+                continue
+            norm = np.linalg.norm(vec)
+            if norm == 0:
+                continue
+            embs_list.append(vec / norm)
+            products.append(p.product)
+
+        if not embs_list:
+            cache_root[cache_key] = {"embs": None, "products": []}
+            return []
+
+        emb_matrix = np.vstack(embs_list)  # shape (N, D)
+        cache_root[cache_key] = {"embs": emb_matrix, "products": products}
+
+    # normalize query and compute dot product similarities
+    q = q_emb / (np.linalg.norm(q_emb) + 1e-12)
+    sims = emb_matrix.dot(q)  # (N,)
+
+    N = sims.shape[0]
+    if top_n < N:
+        idxs = np.argpartition(-sims, top_n)[:top_n]
+        idxs = idxs[np.argsort(-sims[idxs])]
+    else:
+        idxs = np.argsort(-sims)
+
+    return [products[i] for i in idxs]
+
+
 class FindSimilarProducts:
     def __init__(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -91,7 +174,7 @@ class FindSimilarProducts:
         image_embedding = embedding.tolist()
         
         # پیدا کردن محصولات مشابه
-        similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
+        similar_products = find_similar_products(image_embedding, predicted_category, my_style.user.is_man, 50)
 
         elapsed_seconds = time.time() - start_time
         elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -158,7 +241,7 @@ class FindSimilarProducts:
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
                 embedding = self.classifier.encode_image(prod_info["image"])
                 image_embedding = embedding.tolist()
-                similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, my_style.user.is_man, 50)
+                similar_products = find_similar_products(image_embedding, predicted_category, my_style.user.is_man, 50)
 
                 crop_filename = f"{prod_info['category_name']}.png"
                 crop_rel_path = os.path.join("my_styles/crops", str(my_style.id), crop_filename)
@@ -210,7 +293,7 @@ class FindSimilarProducts:
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
                 embedding = self.classifier.encode_image(prod_info['image'])
                 image_embedding = embedding.tolist()
-                similar_products = self._find_similar_products(image_embedding, len(image_embedding), is_man=is_man, top_n=product_n)
+                similar_products = find_similar_products(image_embedding, is_man=is_man, top_n=product_n)
 
                 elapsed_seconds = time.time() - start_time
                 elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -475,28 +558,3 @@ class FindSimilarProducts:
             emb = self.feature_extractor(t).squeeze().cpu().numpy().reshape(-1)
         return emb, emb.shape[0]
 
-    def _find_similar_products(self, query_emb, emb_dim, category=None, is_man=None, top_n=30):
-        # Use cached embedding matrix if available (faster than per-row JSON parsing + sklearn)
-        emb_matrix, products = self._build_product_embeddings_cache(emb_dim, category=category, is_man=is_man)
-        if emb_matrix is None:
-            return []
-
-        q = np.array(query_emb, dtype=np.float32)
-        qnorm = np.linalg.norm(q)
-        if qnorm == 0:
-            return []
-        q = q / qnorm  # ensure unit vector for cosine similarity -> dot product
-
-        # fast dot product: (N, D) dot (D,) -> (N,)
-        sims = emb_matrix.dot(q)
-
-        # use argpartition for faster top-k when N large
-        N = sims.shape[0]
-        if top_n < N:
-            idxs = np.argpartition(-sims, top_n)[:top_n]
-            # sort the top indexes
-            idxs = idxs[np.argsort(-sims[idxs])]
-        else:
-            idxs = np.argsort(-sims)
-
-        return [products[i] for i in idxs]

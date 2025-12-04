@@ -391,6 +391,85 @@
   animation-delay: 0.6s;
 }
 
+/* Filters row in style page (category/gender/apply) */
+.style-right .filters-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 12px;
+  width: 100%;
+}
+.style-right .filters-row > div,
+.style-right .filters-row > label {
+  display: block;
+  width: 100%;
+}
+.style-right .filters-row label {
+  display: block;
+  gap: 4px;
+  margin: 0 0 4px 0;
+}
+.style-right .filters-row select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  color: #222;
+  box-sizing: border-box;
+}
+.style-right .filters-row select.gender-select {
+  width: 100%;
+  max-width: 100%;
+}
+.style-right .filters-row .apply-button,
+.style-right .filters-row button {
+  height: 38px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  width: auto;
+  max-width: 140px;
+  align-self: flex-start;
+}
+.style-right .products-grid {
+  display: grid;
+  /* increase min card width to make each product wider */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+@media (min-width: 1400px) {
+  .style-right .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .style-right .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+}
+
+/* ensure .style-right stacks filters above products and prevents overflow */
+.style-right {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+.style-right .filters-row {
+  overflow: hidden;
+}
+
+
 @keyframes fadeIn {
   to {
     opacity: 1;

@@ -1,3 +1,4 @@
+import json
 from math import sqrt
 from datetime import timedelta
 from django.db.models import F, Value, BooleanField, FloatField
@@ -16,7 +17,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from core.permissions import IsAdminOrReadOnly
 from core.pagination import CustomDefaultPagination
-from .scripts.detect_products import FindSimilarProducts
+from .scripts.detect_products import FindSimilarProducts, find_similar_products
 from . import models, serializers, filters, permissions
 
 # Create your views here.
@@ -260,3 +261,31 @@ class TestPredictStyleView(APIView):
         predict_serializer = serializers.ShowTestPredictStyleSerializer(instance=predict, many=True, context={"request": request})
         
         return Response(predict_serializer.data, status.HTTP_200_OK)
+
+
+class FindSimilarProductsView(APIView):
+    serializer_class = serializers.EmbeddingSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=self.request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        
+        top_n = data.get("top_n", 20)
+        page_n = data.get("page_n", 1)
+
+        # compute how many top results we need to cover the requested page
+        max_needed = page_n * top_n
+        products_all = find_similar_products(json.loads(data["embedding"]), category=data["category"], is_man=data["is_man"], top_n=max_needed)
+
+        # slice to requested page
+        start = (page_n - 1) * top_n
+        end = start + top_n
+        products_page = products_all[start:end] if products_all else []
+
+        if products_page:
+            product_serializer = serializers.ProductSerializer(instance=products_page, many=True, context={"request": request})
+            return Response(product_serializer.data, status.HTTP_200_OK)
+
+        return Response({"Products Not Found"}, status.HTTP_204_NO_CONTENT)

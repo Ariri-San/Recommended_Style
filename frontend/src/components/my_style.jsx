@@ -201,7 +201,7 @@ function MyStyle({user}) {
 
                 {/* 🔹 Middle: Crops */}
                 <div className="style-middle">
-                <h4>پیش‌بینی‌ها</h4>
+                <h4 className="style-middle-title">پیش‌بینی‌ها</h4>
                 <div className="crops-list">
                     {styleData.predicts.map((predict) => {
                     const isActive = selectedPredict?.id === predict.id;
@@ -228,7 +228,7 @@ function MyStyle({user}) {
 
                 {/* 🔹 Right: Products */}
                 <div className="style-right">
-                    <h4>محصولات مشابه</h4>
+                    <h4 className="style-right-title">محصولات مشابه</h4>
                     {selectedPredict ? (
                         <div className="products-grid">
                             {selectedPredict.product ? (

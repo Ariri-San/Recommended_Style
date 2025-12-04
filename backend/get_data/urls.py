@@ -15,6 +15,8 @@ router.add_custom_root('create_style_predict', views.CreateCropMyStylePredictVie
 router.add_custom_root('update_style_predict', views.UpdateCropMyStylePredictView.as_view(), 'update_style_predict')
 router.add_custom_root('recommended_my_styles', views.RecommendedMyStyleView.as_view(), 'recommended_my_styles')
 router.add_custom_root('test_predict_style', views.TestPredictStyleView.as_view(), 'test_predict_style')
+router.add_custom_root('find_similar_products', views.FindSimilarProductsView.as_view(), 'find_similar_products')
+
 
 
 styles_router = routers.NestedSimpleRouter(router, 'styles', lookup='style')

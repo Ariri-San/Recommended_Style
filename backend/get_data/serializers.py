@@ -71,9 +71,13 @@ class StylePredictSerializer(serializers.ModelSerializer):
     def get_bounding_box(self, style_predict: models.StylePredict):
         return json.loads(style_predict.crop_meta)["bounding_box"]
     
+    def get_image_embedding(self, style_predict: models.StylePredict):
+        return json.loads(style_predict.image_embedding)
+    
+    
     class Meta:
         model = models.StylePredict
-        fields = ['id', 'style', 'category', 'crop_name', 'products', 'crop_image', 'bounding_box', 'last_update', 'created_at']
+        fields = ['id', 'style', 'category', 'crop_name', 'products', 'crop_image', 'bounding_box', 'image_embedding', 'image_embedding_dim', 'last_update', 'created_at']
 
 class SimpleStylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -137,9 +141,12 @@ class MyStylePredictSerializer(serializers.ModelSerializer):
     def get_bounding_box(self, style_predict: models.MyStylePredict):
         return json.loads(style_predict.bounding_box)
     
+    def get_image_embedding(self, style_predict: models.MyStylePredict):
+        return json.loads(style_predict.image_embedding)
+    
     class Meta:
         model = models.MyStylePredict
-        fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'detected_products', 'last_update', 'created_at']
+        fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'image_embedding', 'image_embedding_dim', 'prediction_model', 'detected_products', 'last_update', 'created_at']
 
 class UpdateMyStylePredictSerializer(serializers.ModelSerializer):
     class Meta:
@@ -255,3 +262,14 @@ class ShowTestPredictStyleSerializer(serializers.Serializer):
 
     class Meta:
         fields = ['category', 'predict_elapsed', 'crop_name', 'crop_image', 'bounding_box', 'products']
+
+
+class EmbeddingSerializer(serializers.Serializer):
+    embedding = serializers.JSONField()
+    category = serializers.IntegerField(min_value=1)
+    top_n = serializers.IntegerField(required=False, default=20, min_value=1)
+    page_n = serializers.IntegerField(required=False, default=1, min_value=1)
+    is_man = serializers.BooleanField()
+    
+    class Meta:
+        fields = ['embedding', 'category', 'top_n', 'page_n', 'is_man']

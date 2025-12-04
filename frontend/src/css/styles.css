@@ -57,7 +57,7 @@
 /* main container (position:relative for svg overlay) */
 .style-page {
   display: grid;
-  grid-template-columns: 2fr 1fr 1.2fr;
+  grid-template-columns: 1.7fr 1fr 1.8fr;
   gap: 16px;
   position: relative;
   background: #ffffff;
@@ -65,6 +65,11 @@
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(13, 38, 76, 0.06);
   min-height: 60vh;
+}
+
+/* If there are no products, make the third column narrower */
+.style-page.no-products {
+  grid-template-columns: 1.7fr 1fr 0.2fr; /* reduce third column from 1.8fr to 1fr */
 }
 
 /* left */
@@ -121,9 +126,21 @@
   padding-left: 6px;
   max-height: 75vh;
 }
+.style-right-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: black;
+}
+.style-middle-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: black;
+}
 .products-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .product-card { background:#fff; border-radius:8px; padding:6px; text-align:center; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-.product-card img { width:100%; height:120px; object-fit:cover; border-radius:6px; }
+.product-card img { width:100%; object-fit:cover; border-radius:6px; }
 .product-title { font-size:12px; margin-top:6px; }
 .product-button {
   border-radius: 5px;

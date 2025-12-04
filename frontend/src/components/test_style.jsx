@@ -229,6 +229,7 @@ function TestStyle() {
                             className="style-image"
                             src={imageUrl}
                             onLoad={handleImageLoad}
+                            onClick={handleImageLoad}
                         />
 
                         {/* 🔹 Predict boxes with scaling */}
@@ -265,7 +266,7 @@ function TestStyle() {
 
                     {/* 🔹 Middle: Crops */}
                     <div className="style-middle">
-                    <h4>پیش‌بینی‌ها</h4>
+                    <h4 className="style-middle-title">پیش‌بینی‌ها</h4>
                     <div className="crops-list">
                         {results.map((predict) => {
                         const isActive = selectedPredict?.crop_name === predict.crop_name;
@@ -292,7 +293,7 @@ function TestStyle() {
 
                     {/* 🔹 Right: Products */}
                     <div className="style-right">
-                    <h4>محصولات مشابه</h4>
+                    <h4 className="style-right-title">محصولات مشابه</h4>
                     {selectedPredict ? (
                         <div className="products-grid">
                         {selectedPredict.products.map((p) => (
