@@ -152,6 +152,8 @@ class Command(BaseCommand):
                     # print(len(categories))
                     # print(classifier_predict["type_probs"])
                     predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                    predicted_color_obj = next((c for c in colors if c.title == classifier_predict["color_label"]), None) if colors else None
+                    
                     embedding = self.classifier.encode_image(prod_info['image'])
                     image_embedding = embedding.tolist()
                     similar_products = self._find_similar_products(image_embedding, len(image_embedding), predicted_category, style.is_man, 50)
@@ -164,6 +166,8 @@ class Command(BaseCommand):
                         style=style,
                         version=version,
                         category=predicted_category,
+                        color = predicted_color_obj,
+                        color_score = classifier_predict["color_score"],
                         prediction_model='ViT-B-32 laion2b_s34b_b79k',
                         predicted_at=timezone.now(),
                         crop_image=img_content,

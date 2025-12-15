@@ -7,17 +7,40 @@ import request from "../services/requestService"
 
 
 
-function showDateTime(date_time){
-    const date = new Date(date_time);
-    
-    const formattedDate = date.toLocaleString("fa-IR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-    return formattedDate
+
+async function productsSimilar(predict, is_man, page_n = 1, top_n = 20, overrideCategoryId = null, is_color = null) {
+    try {
+        // interpret overrideCategoryId:
+        // - "ALL" => no category filter (send null)
+        // - null/undefined => use predicted category
+        // - number => use that category id
+        let cat = null;
+        if (overrideCategoryId === "ALL") {
+            cat = null;
+        } else if (overrideCategoryId !== undefined && overrideCategoryId !== null) {
+            cat = overrideCategoryId;
+        } else {
+            cat = predict.category ? predict.category.id : null;
+        }
+
+        let color = null;
+        if (is_color){
+            color = predict.color?.id || null;
+        }
+        const payload = {
+            embedding: predict.image_embedding,
+            category: cat,
+            color: color,
+            is_man,
+            page_n,
+            top_n,
+        };
+        const response = await request.saveObject(payload, "api/find_similar_products/");
+        return response.data;
+    } catch (error) {
+        if (error.data) request.showError(error);
+        return null;
+    }
 }
 
 
@@ -55,12 +78,16 @@ function MyStyle({user}) {
         renderedHeight: 1,
     });
 
+    const [loadingProducts, setLoadingProducts] = useState(false);
+    const [hasMoreProducts, setHasMoreProducts] = useState(false);
+    const productsGridRef = useRef(null);
     const containerRef = useRef(null);
     const predictRefs = useRef({});
     const cropRefs = useRef({});
     const [categoriesList, setCategoriesList] = useState([]);
     const [tempCategoryId, setTempCategoryId] = useState(null);
     const [appliedCategoryId, setAppliedCategoryId] = useState(null);
+    const [isColor, setIsColor] = useState(true);
     const [genderMode, setGenderMode] = useState("predicted");
     const [productsList, setProductsList] = useState(null);
     const [perPage] = useState(20);
@@ -92,7 +119,7 @@ function MyStyle({user}) {
     function computeEffectiveIsMan() {
         if (genderMode === "male") return true;
         if (genderMode === "female") return false;
-        return styleData?.is_man ?? false;
+        return styleData.user?.is_man || false;
     }
 
     async function applyFilters() {
@@ -110,9 +137,16 @@ function MyStyle({user}) {
             useCat = selectedPredict.category?.id || null;
         }
 
+        console.log(isColor);
+        let color = null;
+        if (isColor){
+            color = selectedPredict.color?.id || null;
+        }
+
         const payload = {
             embedding,
             category: useCat,
+            color: color,
             is_man: computeEffectiveIsMan(),
             page_n: 1,
             top_n: perPage,
@@ -125,6 +159,17 @@ function MyStyle({user}) {
             setTempCategoryId(null);
             setProductsList(res.data || []);
         } catch (e) {}
+    }
+
+    async function fetchProductsPage(page_n = 1, overrideCategory = null) {
+        if (!selectedPredict) return null;
+        const effectiveIsMan = computeEffectiveIsMan();
+        // prefer explicit overrideCategory, then appliedCategoryId
+        const useCategory = overrideCategory !== undefined ? overrideCategory : appliedCategoryId;
+        setLoadingProducts(true);
+        const res = await productsSimilar(selectedPredict, effectiveIsMan, page_n, perPage, useCategory, isColor);
+        setLoadingProducts(false);
+        return res;
     }
 
     // 🔹 When image loads, capture real & rendered size
@@ -182,6 +227,7 @@ function MyStyle({user}) {
         setPaths(newPaths);
     }, [styleData, selectedPredict]);
 
+
     // update paths on data change, selection change, resize, scroll
     useEffect(() => {
         updatePaths();
@@ -208,6 +254,32 @@ function MyStyle({user}) {
         if (ro) ro.disconnect();
         };
     }, [updatePaths, handleImageLoad]);
+
+    useEffect(() => {
+        let mounted = true;
+        async function loadFirst() {
+            setTempCategoryId(null);
+            setAppliedCategoryId(null);
+            setGenderMode("predicted");
+            if (!selectedPredict) {
+                setProductsList([]);
+                setHasMoreProducts(false);
+                return;
+            }
+            const res = await fetchProductsPage(1);
+            if (!mounted) return;
+            setProductsList(res || []);
+            // scroll to products grid when first page loads
+            setTimeout(() => {
+                if (productsGridRef.current) {
+                    productsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            }, 80);
+            setHasMoreProducts(Array.isArray(res) && res.length === perPage);
+        }
+        loadFirst();
+        return () => { mounted = false; };
+    }, [selectedPredict, perPage, styleData]);
 
     if (!styleData) return null;
 
@@ -309,15 +381,36 @@ function MyStyle({user}) {
                             <label style={{ display: "inline-block", marginRight: 12 }}>
                                 جنسیت:
                                 <select value={genderMode} onChange={(e) => setGenderMode(e.target.value)} style={{ marginLeft: 8 }}>
-                                    <option value="predicted">{styleData?.is_man ? "مرد (پیش‌بینی)" : "زن (پیش‌بینی)"}</option>
+                                    <option value="predicted">{styleData.user?.is_man ? "مرد (جنسیت کاربر)" : "زن (جنسیت کاربر)"}</option>
                                     <option value="male">مرد</option>
                                     <option value="female">زن</option>
                                 </select>
+                            </label>
+                            <label style={{ display: "inline-block", marginRight: 12 }}>
+                                فیلتر رنگ:
+                                <input
+                                    checked={isColor}
+                                    onChange={(e) => setIsColor(e.target.checked)}
+                                    type="checkbox"
+                                    style={{ marginLeft: 8 }}
+                                />
                             </label>
                             <button onClick={applyFilters}>اعمال</button>
                         </div>
                         <div className="products-grid">
                             {/* if productsList set from filter, use it; otherwise fallback to original */}
+                            {selectedPredict.product ? (
+                                    <div>
+                                        <a href={selectedPredict.product.url} target="_blank" rel="noopener noreferrer">
+                                            <img className="product-image" src={selectedPredict.product.image_local || selectedPredict.product.image} alt={selectedPredict.product.title} />
+                                        </a>
+                                        <div className="product-title">{selectedPredict.product.title}</div>
+                                        <div className="product-price">
+                                            {selectedPredict.product.price ? selectedPredict.product.price.toLocaleString("fa-IR") + " تومان" : ""}
+                                        </div>
+                                        <hr />
+                                    </div>
+                                ) : null}
                             { (productsList && productsList.length) ? productsList.map((p) => (
                                 <div key={p.id} className="product-card">
                                     <a href={p.url} target="_blank" rel="noopener noreferrer">
@@ -335,18 +428,6 @@ function MyStyle({user}) {
                                 </div>
                             )) : (
                                 <>
-                                {selectedPredict.product ? (
-                                    <div>
-                                        <a href={selectedPredict.product.url} target="_blank" rel="noopener noreferrer">
-                                            <img className="product-image" src={selectedPredict.product.image_local || selectedPredict.product.image} alt={selectedPredict.product.title} />
-                                        </a>
-                                        <div className="product-title">{selectedPredict.product.title}</div>
-                                        <div className="product-price">
-                                            {selectedPredict.product.price ? selectedPredict.product.price.toLocaleString("fa-IR") + " تومان" : ""}
-                                        </div>
-                                        <hr />
-                                    </div>
-                                ) : null}
                                 {selectedPredict.detected_products.map((p) => (
                                     <div key={p.id} className="product-card">
                                         <a href={p.url} target="_blank" rel="noopener noreferrer">

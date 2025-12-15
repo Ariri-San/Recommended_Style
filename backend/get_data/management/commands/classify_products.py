@@ -98,7 +98,7 @@ class Command(BaseCommand):
 
                 # map labels back to FKs if possible
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
-                predicted_color_obj = next((c for c in colors if c.title == classifier_predict["c_label"]), None) if colors else None
+                predicted_color_obj = next((c for c in colors if c.title == classifier_predict["color_label"]), None) if colors else None
 
                 product.image_local.name = local_path
                 

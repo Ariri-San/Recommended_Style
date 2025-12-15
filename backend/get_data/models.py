@@ -115,6 +115,8 @@ def style_crop_upload_path(instance, filename):
 class StylePredict(models.Model):
     style = models.ForeignKey(Style, on_delete=models.CASCADE, related_name='predicts')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='style_predicts')
+    color = models.ForeignKey(Color, on_delete=models.SET_NULL, null=True, blank=True, related_name='styles')
+    color_score = models.FloatField(null=True, blank=True)
     crop_name = models.CharField(max_length=127, null=True, blank=True)
     products = models.ManyToManyField(Product, related_name='style_predicts')
     version = models.IntegerField(default=1)
@@ -147,6 +149,8 @@ class MyStyle(models.Model):
 class MyStylePredict(models.Model):
     style = models.ForeignKey(MyStyle, on_delete=models.CASCADE, related_name='predicts')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='my_style_predicts')
+    color = models.ForeignKey(Color, on_delete=models.SET_NULL, null=True, blank=True, related_name='my_styles')
+    color_score = models.FloatField(null=True, blank=True)
     detected_products = models.ManyToManyField(Product, related_name='my_style_predicts')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='my_style_predicts_user')
     crop_name = models.CharField(max_length=127)

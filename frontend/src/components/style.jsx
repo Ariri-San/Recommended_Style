@@ -21,7 +21,7 @@ function showDateTime(date_time){
 }
 
 
-async function productsSimilar(predict, is_man, page_n = 1, top_n = 20, overrideCategoryId = null) {
+async function productsSimilar(predict, is_man, page_n = 1, top_n = 20, overrideCategoryId = null, is_color = null) {
     try {
         // interpret overrideCategoryId:
         // - "ALL" => no category filter (send null)
@@ -35,9 +35,15 @@ async function productsSimilar(predict, is_man, page_n = 1, top_n = 20, override
         } else {
             cat = predict.category ? predict.category.id : null;
         }
+
+        let color = null;
+        if (is_color){
+            color = predict.color?.id || null;
+        }
         const payload = {
             embedding: predict.image_embedding,
             category: cat,
+            color: color,
             is_man,
             page_n,
             top_n,
@@ -72,6 +78,7 @@ function Style() {
     const loadMoreRef = useRef(null);
     const [categoriesList, setCategoriesList] = useState([]);
     const [tempCategoryId, setTempCategoryId] = useState(null); // user selection before apply
+    const [isColor, setIsColor] = useState(true);
     const [appliedCategoryId, setAppliedCategoryId] = useState(null); // last applied override
     const [genderMode, setGenderMode] = useState("predicted"); // 'predicted' | 'male' | 'female'
     const [imageSize, setImageSize] = useState({
@@ -192,7 +199,7 @@ function Style() {
         // prefer explicit overrideCategory, then appliedCategoryId
         const useCategory = overrideCategory !== undefined ? overrideCategory : appliedCategoryId;
         setLoadingProducts(true);
-        const res = await productsSimilar(selectedPredict, effectiveIsMan, page_n, perPage, useCategory);
+        const res = await productsSimilar(selectedPredict, effectiveIsMan, page_n, perPage, useCategory, isColor);
         setLoadingProducts(false);
         return res;
     }
@@ -375,6 +382,15 @@ function Style() {
                             <option value="male">مرد</option>
                             <option value="female">زن</option>
                         </select>
+                    </label>
+                    <label style={{ display: "inline-block", marginRight: 12 }}>
+                        فیلتر رنگ:
+                        <input
+                            checked={isColor}
+                            onChange={(e) => setIsColor(e.target.checked)}
+                            type="checkbox"
+                            style={{ marginLeft: 8 }}
+                        />
                     </label>
                     <button onClick={async () => {
                         // apply temp selection and fetch page 1 with it

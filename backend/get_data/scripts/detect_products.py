@@ -30,7 +30,7 @@ from get_data.models import Style, Product, StylePredict, Category, ProductPredi
 _MODELS_CACHE = {}
 
 
-def find_similar_products(query_emb, category=None, is_man=None, top_n=30):
+def find_similar_products(query_emb, category=None, color=None, is_man=None, top_n=30):
     """
     Faster, robust version of find_similar_products:
     - parses various embedding formats (JSON string, list, numpy array)
@@ -45,9 +45,10 @@ def find_similar_products(query_emb, category=None, is_man=None, top_n=30):
 
     global _MODELS_CACHE
     cache_root = _MODELS_CACHE.setdefault("product_embs", {})
-    cat_id = "all" if category is None else getattr(category, "id", str(category))
+    cat_id = "all" if category is None else int(category)
+    color_id = "all" if color is None else int(color)
     is_man_key = "any" if is_man is None else int(is_man)
-    cache_key = f"{emb_dim}_{cat_id}_{is_man_key}"
+    cache_key = f"{emb_dim}_{cat_id}_{color_id}_{is_man_key}"
 
     if cache_key in cache_root:
         emb_matrix = cache_root[cache_key]["embs"]
@@ -58,6 +59,8 @@ def find_similar_products(query_emb, category=None, is_man=None, top_n=30):
         qs = ProductPredict.objects.all() if is_man is None else ProductPredict.objects.filter(product__is_man=is_man)
         if category:
             qs = qs.filter(category=category)
+        if color:
+            qs = qs.filter(color=color)
         # preserve ORM ordering by materializing list
         qs_list = list(qs)
 
@@ -168,13 +171,14 @@ class FindSimilarProducts:
             color_labels=color_labels,
         )
         predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+        predicted_color_obj = next((c for c in colors if c.title == classifier_predict["color_label"]), None) if colors else None
         
         # embedding
         embedding = self.classifier.encode_image(pil_crop)
         image_embedding = embedding.tolist()
         
         # پیدا کردن محصولات مشابه
-        similar_products = find_similar_products(image_embedding, predicted_category, my_style.user.is_man, 50)
+        similar_products = find_similar_products(image_embedding, predicted_category.id, predicted_color_obj.id, my_style.user.is_man, 50)
 
         elapsed_seconds = time.time() - start_time
         elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -182,6 +186,8 @@ class FindSimilarProducts:
         if my_style_predict and my_style_predict.style == my_style:
             style_predict = MyStylePredict.objects.get(id=my_style_predict.id)
             style_predict.category = predicted_category
+            style_predict.color = predicted_color_obj
+            style_predict.color_score = classifier_predict["color_score"]
             style_predict.predict_elapsed = elapsed_duration
             style_predict.crop_name = f"manual_crop_{x1}_{y1}_{x2}_{y2}"
             style_predict.crop_image = crop_path
@@ -193,6 +199,8 @@ class FindSimilarProducts:
             style_predict = MyStylePredict.objects.create(
                 style=my_style,
                 category=predicted_category,
+                color = predicted_color_obj,
+                color_score = predicted_color_obj["color_score"],
                 prediction_model='ViT-B-32 laion2b_s34b_b79k',
                 predict_elapsed=elapsed_duration,
                 crop_name=f"manual_crop_{x1}_{y1}_{x2}_{y2}",
@@ -239,9 +247,11 @@ class FindSimilarProducts:
                     color_labels=color_labels,
                 )
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                predicted_color_obj = next((c for c in colors if c.title == classifier_predict["color_label"]), None) if colors else None
+                
                 embedding = self.classifier.encode_image(prod_info["image"])
                 image_embedding = embedding.tolist()
-                similar_products = find_similar_products(image_embedding, predicted_category, my_style.user.is_man, 50)
+                similar_products = find_similar_products(image_embedding, predicted_category.id, predicted_color_obj.id, my_style.user.is_man, 50)
 
                 crop_filename = f"{prod_info['category_name']}.png"
                 crop_rel_path = os.path.join("my_styles/crops", str(my_style.id), crop_filename)
@@ -253,6 +263,8 @@ class FindSimilarProducts:
                 style_predict = MyStylePredict.objects.create(
                     style=my_style,
                     category=predicted_category,
+                    color = predicted_color_obj,
+                    color_score = classifier_predict["color_score"],
                     prediction_model='ViT-B-32 laion2b_s34b_b79k',
                     predict_elapsed=elapsed_duration,
                     crop_name=prod_info['category_name'],
@@ -291,9 +303,11 @@ class FindSimilarProducts:
                     color_labels=color_labels,
                 )
                 predicted_category = next((c for c in categories if c.title == classifier_predict["type_label"]), None)
+                predicted_color_obj = next((c for c in colors if c.title == classifier_predict["color_label"]), None) if colors else None
+                
                 embedding = self.classifier.encode_image(prod_info['image'])
                 image_embedding = embedding.tolist()
-                similar_products = find_similar_products(image_embedding, is_man=is_man, top_n=product_n)
+                similar_products = find_similar_products(image_embedding, predicted_category.id, predicted_color_obj.id, is_man=is_man, top_n=product_n)
 
                 elapsed_seconds = time.time() - start_time
                 elapsed_duration = timedelta(seconds=elapsed_seconds)
@@ -306,6 +320,7 @@ class FindSimilarProducts:
                 
                 crops.append({
                     "category": predicted_category,
+                    "color": predicted_color_obj,
                     "predict_elapsed": elapsed_duration,
                     "crop_name": prod_info['category_name'],
                     "crop_image": f"data:image/png;base64,{img_str}",

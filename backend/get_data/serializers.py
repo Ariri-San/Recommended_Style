@@ -35,10 +35,11 @@ class ColorSerializer(serializers.ModelSerializer):
 class ProductPredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     color = ColorSerializer(read_only=True)
+    color = ColorSerializer(read_only=True)
     
     class Meta:
         model = models.ProductPredict
-        fields = ['id', 'version', 'category', 'category_score', 'color', 'color_score', 'last_update', 'created_at']
+        fields = ['id', 'version', 'category', 'color', 'category_score', 'color', 'color_score', 'last_update', 'created_at']
 
 
 #  ----------  Product  ----------
@@ -65,6 +66,7 @@ class ProductSerializer(serializers.ModelSerializer):
 #  ----------  StylePredict  ----------
 class StylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    color = ColorSerializer(read_only=True)
     products = ProductSerializer(many=True, read_only=True)
     bounding_box = serializers.SerializerMethodField(read_only=True)
     
@@ -77,7 +79,7 @@ class StylePredictSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.StylePredict
-        fields = ['id', 'style', 'category', 'crop_name', 'products', 'crop_image', 'bounding_box', 'image_embedding', 'image_embedding_dim', 'last_update', 'created_at']
+        fields = ['id', 'style', 'category', 'color', 'crop_name', 'products', 'crop_image', 'bounding_box', 'image_embedding', 'image_embedding_dim', 'last_update', 'created_at']
 
 class SimpleStylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -134,6 +136,7 @@ class StyleAndPredictSerializer(serializers.ModelSerializer):
 #  ----------  MyStylePredict  ----------
 class MyStylePredictSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    color = ColorSerializer(read_only=True)
     detected_products = ProductSerializer(many=True, read_only=True)
     product = ProductSerializer(read_only=True)
     bounding_box = serializers.SerializerMethodField(read_only=True)
@@ -146,7 +149,7 @@ class MyStylePredictSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.MyStylePredict
-        fields = ['id', 'category', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'image_embedding', 'image_embedding_dim', 'prediction_model', 'detected_products', 'last_update', 'created_at']
+        fields = ['id', 'category', 'color', 'product', 'crop_name', 'crop_image', 'bounding_box', 'predict_elapsed', 'image_embedding', 'image_embedding_dim', 'prediction_model', 'detected_products', 'last_update', 'created_at']
 
 class UpdateMyStylePredictSerializer(serializers.ModelSerializer):
     class Meta:
@@ -254,6 +257,7 @@ class GetTestPredictStyleSerializer(serializers.Serializer):
 
 class ShowTestPredictStyleSerializer(serializers.Serializer):
     category = CategorySerializer(read_only=True)
+    color = ColorSerializer(read_only=True)
     predict_elapsed = serializers.DurationField(read_only=True)
     crop_name = serializers.CharField(read_only=True)
     crop_image = serializers.CharField(read_only=True)
@@ -261,15 +265,16 @@ class ShowTestPredictStyleSerializer(serializers.Serializer):
     products = ProductSerializer(many=True, read_only=True)
 
     class Meta:
-        fields = ['category', 'predict_elapsed', 'crop_name', 'crop_image', 'bounding_box', 'products']
+        fields = ['category', 'color', 'predict_elapsed', 'crop_name', 'crop_image', 'bounding_box', 'products']
 
 
 class EmbeddingSerializer(serializers.Serializer):
     embedding = serializers.JSONField()
     category = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    color = serializers.IntegerField(required=False, allow_null=True, min_value=1)
     top_n = serializers.IntegerField(required=False, default=20, min_value=1)
     page_n = serializers.IntegerField(required=False, default=1, min_value=1)
     is_man = serializers.BooleanField(required=False, allow_null=True)
     
     class Meta:
-        fields = ['embedding', 'category', 'top_n', 'page_n', 'is_man']
+        fields = ['embedding', 'category', 'color', 'top_n', 'page_n', 'is_man']
