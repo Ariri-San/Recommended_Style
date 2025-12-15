@@ -219,10 +219,11 @@ class RecommendedMyStyleView(APIView):
         skin_diff = color_distance(skin_color, sc)
 
         # محاسبه‌ی امتیاز شباهت
+        # Ensure Decimal values are converted to float before mixing with float constants
         score = (
-            height_diff * 0.4 +
-            weight_diff * 0.3 +
-            age_diff * 0.001 +
+            float(height_diff) * 0.4 +
+            float(weight_diff) * 0.3 +
+            float(age_diff) * 0.001 +
             hair_diff * 0.05 +
             skin_diff * 0.05
         )

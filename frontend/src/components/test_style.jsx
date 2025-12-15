@@ -170,7 +170,6 @@ function TestStyle() {
         if (ro) ro.disconnect();
         };
     }, [updatePaths]);
-    console.log(selectedPredict);
 
 
     return (

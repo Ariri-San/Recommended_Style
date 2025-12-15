@@ -38,6 +38,8 @@ import Styles from "./components/styles";
 import Style from "./components/style";
 import MyStyles from "./components/my_styles";
 import MyStyle from "./components/my_style";
+import Recommended from './components/recommended';
+
 
 
 
@@ -82,6 +84,7 @@ class App extends Component {
           <Route path="/styles/:id" element={<Style user={this.state.user} />}></Route>
           <Route path="/my_styles" element={<MyStyles user={this.state.user} />}></Route>
           <Route path="/my_styles/:id" element={<MyStyle user={this.state.user} />}></Route>
+          <Route path="/recommended" element={<Recommended user={this.state.user} />}></Route>
 
           <Route path="/register" element={<Register user={this.state.user} />}></Route>
           <Route path="/login" element={<Login />}></Route>

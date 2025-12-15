@@ -33,7 +33,7 @@ function Navbar({ user }) {
                         <NavLink to="/" className="nav-item nav-link">Home</NavLink>
                         <NavLink to="/products" className="nav-item nav-link">Products</NavLink>
                         <NavLink to="/styles" className="nav-item nav-link">Styles</NavLink>
-                        {user ? <NavLink to="/recommend" className="nav-item nav-link">Recommended System</NavLink> : ""}
+                        {user ? <NavLink to="/recommended" className="nav-item nav-link">Recommended System</NavLink> : ""}
                         <div className="nav-item dropdown">
                             <div className="nav-link dropdown-toggle" data-bs-toggle="dropdown" onClick={() => setState({...state, dropdown_open: !state.dropdown_open})}>Account</div>
                             <div className="dropdown-menu m-0" style={{display: state.dropdown_open ? "block" : ""}}>
