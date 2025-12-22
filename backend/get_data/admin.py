@@ -7,16 +7,19 @@ from . import models
 
 
 admin.site.register(models.Site)
-admin.site.register(models.Category)
 admin.site.register(models.Color)
 # admin.site.register(models.StylePredict)
 
-
+@admin.register(models.Category)
+class CategoryAdmin(admin.ModelAdmin):
+    search_fields = ['title']
 
 @admin.register(models.Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ["id", "title", "is_man", "price"]
     readonly_fields = ['thumbnail']
+    list_filter = ['is_man', 'predicts__category']
+    search_fields = ['title', 'predicts__category__title']
 
     def thumbnail(self, instance):
         if instance.image != '':
@@ -27,6 +30,9 @@ class ProductAdmin(admin.ModelAdmin):
 class ProductPredictAdmin(admin.ModelAdmin):
     list_display = ["id", "product", "category"]
     readonly_fields = ["product", "version", 'thumbnail']
+    list_filter = ['category']
+    search_fields = ['predict__title', 'category__title']
+    
 
     def thumbnail(self, instance):
         if instance.product.image != '':
@@ -61,7 +67,7 @@ class StylePredictAdmin(admin.ModelAdmin):
     list_display = ["version", "last_update", "style"]
     readonly_fields = ['crop_thumbnail', 'thumbnail', 'product_thumbnails']
     filter_horizontal = ("products",)
-    list_filter = ['style']
+    list_filter = ['products__predicts__category']
     
     def product_thumbnails(self, instance, num_rows=2):
         products = instance.products.all()
@@ -125,10 +131,21 @@ class MyStyleAdmin(admin.ModelAdmin):
 
 @admin.register(models.MyStylePredict)
 class MyStylePredictAdmin(admin.ModelAdmin):
-    list_display = ["id", "last_update", "style"]
+    list_display = ["id", "last_update", "style_id", "style_username", "style_user_is_man"]
     readonly_fields = ['crop_thumbnail', 'thumbnail', 'product_thumbnails']
     filter_horizontal = ("detected_products",)
-    list_filter = ['style']
+    list_filter = ['style__user__is_man', 'detected_products__predicts__category']
+    
+    def style_id(self, obj):
+        return obj.style.id
+    
+    @admin.display(description='Style UserName')
+    def style_username(self, obj):
+        return obj.style.user.username
+    
+    @admin.display(boolean=True, description='Is Man')
+    def style_user_is_man(self, obj):
+        return obj.style.user.is_man
     
     def product_thumbnails(self, instance, num_rows=2):
         products = instance.detected_products.all()
