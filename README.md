@@ -1,12 +1,20 @@
 # Recommended_Style
 این مخزن یک سامانهٔ بینایی‌ماشین برای تحلیل و یافتن محصولات مشابهِ آیتم‌های پوشیدنیِ موجود در عکس‌های استایل است. پیاده‌سازی اصلی در بک‌اند Django قرار دارد و فرانت‌اند با React ساخته شده است. توضیحات زیر مستقیماً بر اساس کد موجود در پوشهٔ `backend/get_data` و اپ‌های مرتبط نوشته شده است.
 
-ویژگی‌های اصلی (بر اساس کد)
-- شناسایی آیتم‌های پوشیدنی در تصویر و برش (crop) هر آیتم — پیاده‌سازی و منطق اصلی در `backend/get_data/scripts/*`.
-- استخراج embedding تصویری و طبقه‌بندی صفر-شات (zero-shot) با مدل CLIP ViT-B/32 — کلاس پیاده‌سازی‌شده: `get_data.scripts.torch_classifier.ClipZeroShotClassifier`.
-- یافتن محصولات مشابه از دیتابیس با محاسبهٔ similarity بین embeddingها — توابع مرتبط در `get_data.scripts.detect_products` و endpoint `FindSimilarProductsView` در `backend/get_data/views.py`.
-- ذخیرهٔ نتایج پیش‌بینی در مدل‌های `StylePredict`, `ProductPredict` و `MyStylePredict` (فیلدهای embedding، نسخهٔ پیش‌بینی، crop_image و meta در `backend/get_data/models.py`).
-- API برای تست تصویر، جستجوی مشابهت بر اساس embedding و ساخت/به‌روزرسانی cropهای کاربر — ویوهای مرتبط: `TestPredictStyleView`, `FindSimilarProductsView`, `CreateCropMyStylePredictView`, `UpdateCropMyStylePredictView`, `RecommendedMyStyleView` در `backend/get_data/views.py`.
+## ویژگی‌های اصلی (بر اساس کد)
+- **شناسایی آیتم‌های پوشیدنی و برش (crop):** پیاده‌سازی و منطق اصلی در `backend/get_data/scripts/*`.
+- **استخراج embedding و طبقه‌بندی صفر-شات:** از CLIP ViT-B/32 استفاده می‌شود؛ کلاس پیاده‌سازی‌شده: `get_data.scripts.torch_classifier.ClipZeroShotClassifier`.
+- **جستجوی مشابهت (Similarity search):** مقایسهٔ embeddingها برای پیدا کردن محصولات مرتبط؛ منطق در `get_data.scripts.detect_products` و endpoint `FindSimilarProductsView`.
+- **ذخیرهٔ نتایج پیش‌بینی:** نتایج در `StylePredict`, `ProductPredict` و `MyStylePredict` ذخیره می‌شوند (فیلدهایی مثل `image_embedding`, `crop_image`, `crop_meta`, `version`).
+- **APIها:** شامل تست تصویر، جستجوی مشابهت، ایجاد/بروزرسانی crop کاربر و پیشنهادهای مبتنی بر شباهت (`TestPredictStyleView`, `FindSimilarProductsView`, `CreateCropMyStylePredictView`, `UpdateCropMyStylePredictView`, `RecommendedMyStyleView`).
+
+### مدل تشخیص لباس (SCHP)
+این پروژه برای تشخیص و تفکیک دقیق نواحی پوشاک در تصویر از مدل «**Self-Correction for Human Parsing (SCHP)**» استفاده می‌کند که برای human parsing و semantic segmentation طراحی شده است. پیاده‌سازی SCHP در پوشهٔ `schp/` موجود است و در تنظیمات مسیر چک‌پوینت پیش‌فرض در `backend/backend/settings.py` به متغیر `SCHP_CHECKPOINT_URL` اشاره شده است.
+
+- **مرجع کد (GitHub):** `https://github.com/PeikeLi/Self-Correction-Human-Parsing`
+- **مقاله:** `https://arxiv.org/abs/1910.09777` (Li et al., "Self-Correction for Human Parsing")
+
+استفاده از SCHP باعث بهبود دقت در تشخیص دسته‌هایی مانند hat / upper-clothes / pants / dress / shoes / bag / sunglasses در قیاس با دتکتورهای عمومی می‌شود (مثلاً COCO-trained).
 
 معماری و جریان داده (high-level, دقیق به کد)
 1. Ingest
@@ -185,25 +193,3 @@ npm start
 - `backend/manage.py` — ابزار مدیریتی Django.
 - `backend/backend/settings.py` — پیکربندی اصلی Django (DB، static/media، auth).
 - `frontend/package.json` — اسکریپت‌ها و وابستگی React.
-
-## تست‌ها
-
-- پوشه‌ها حاوی فایل `tests.py` هستند (برای هر اپ). برای اجرای تست‌های Django:
-
-```bash
-cd backend
-python manage.py test
-```
-
-برای تست فرانت‌اند از اسکریپت‌های `npm test` در پوشه `frontend` استفاده کنید.
-
-## توسعه و مشارکت
-
-- برای توسعه جدید، یک شاخه (branch) جدا بسازید و تغییرات را در آن پیاده کنید.
-- قبل از مرج، اطمینان حاصل کنید که مایگریشن‌ها اجرا شده و تست‌های مرتبط موفق هستند.
-
----
-
-اگر می‌خواهید من README را به‌زبان انگلیسی هم کامل‌تر کنم یا بخش‌های جداگانه (مثل راهنمای استقرار با Docker Compose، توضیح دقیق درباره‌ی ساختار دیتابیس یا نحوه‌ی اضافه کردن مدل‌های ML) را تفصیلی‌تر بنویسم، بگو تا همان‌را اضافه کنم. همچنین می‌توانم README را به‌طور کامل انگلیسی یا دوزبانه قرار دهم.  
-
-
