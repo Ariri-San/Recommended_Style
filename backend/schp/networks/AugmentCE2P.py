@@ -16,6 +16,7 @@ import functools
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+
 # Note here we adopt the InplaceABNSync implementation from https://github.com/mapillary/inplace_abn
 # By default, the InplaceABNSync module contains a BatchNorm Layer and a LeakyReLu layer
 # from schp.modules import InPlaceABNSync
@@ -99,13 +100,13 @@ class PSPModule(nn.Module):
         self.bottleneck = nn.Sequential(
             nn.Conv2d(features + len(sizes) * out_features, out_features, kernel_size=3, padding=1, dilation=1,
                       bias=False),
-            InPlaceABNSync(out_features),
+            nn.BatchNorm2d(out_features),
         )
 
     def _make_stage(self, features, out_features, size):
         prior = nn.AdaptiveAvgPool2d(output_size=(size, size))
         conv = nn.Conv2d(features, out_features, kernel_size=1, bias=False)
-        bn = InPlaceABNSync(out_features)
+        bn = nn.BatchNorm2d(out_features)
         return nn.Sequential(prior, conv, bn)
 
     def forward(self, feats):
@@ -128,23 +129,23 @@ class ASPPModule(nn.Module):
         self.conv1 = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)),
                                    nn.Conv2d(features, inner_features, kernel_size=1, padding=0, dilation=1,
                                              bias=False),
-                                   InPlaceABNSync(inner_features))
+                                   nn.BatchNorm2d(inner_features))
         self.conv2 = nn.Sequential(
             nn.Conv2d(features, inner_features, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(inner_features))
+            nn.BatchNorm2d(inner_features))
         self.conv3 = nn.Sequential(
             nn.Conv2d(features, inner_features, kernel_size=3, padding=dilations[0], dilation=dilations[0], bias=False),
-            InPlaceABNSync(inner_features))
+            nn.BatchNorm2d(inner_features))
         self.conv4 = nn.Sequential(
             nn.Conv2d(features, inner_features, kernel_size=3, padding=dilations[1], dilation=dilations[1], bias=False),
-            InPlaceABNSync(inner_features))
+            nn.BatchNorm2d(inner_features))
         self.conv5 = nn.Sequential(
             nn.Conv2d(features, inner_features, kernel_size=3, padding=dilations[2], dilation=dilations[2], bias=False),
-            InPlaceABNSync(inner_features))
+            nn.BatchNorm2d(inner_features))
 
         self.bottleneck = nn.Sequential(
             nn.Conv2d(inner_features * 5, out_features, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(out_features),
+            nn.BatchNorm2d(out_features),
             nn.Dropout2d(0.1)
         )
 
@@ -173,15 +174,15 @@ class Edge_Module(nn.Module):
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_fea[0], mid_fea, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(mid_fea)
+            nn.BatchNorm2d(mid_fea)
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(in_fea[1], mid_fea, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(mid_fea)
+            nn.BatchNorm2d(mid_fea)
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(in_fea[2], mid_fea, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(mid_fea)
+            nn.BatchNorm2d(mid_fea)
         )
         self.conv4 = nn.Conv2d(mid_fea, out_fea, kernel_size=3, padding=1, dilation=1, bias=True)
         self.conv5 = nn.Conv2d(out_fea * 3, out_fea, kernel_size=1, padding=0, dilation=1, bias=True)
@@ -217,17 +218,17 @@ class Decoder_Module(nn.Module):
         super(Decoder_Module, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(512, 256, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(256)
+            nn.BatchNorm2d(256)
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(256, 48, kernel_size=1, stride=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(48)
+            nn.BatchNorm2d(48)
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(304, 256, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(256),
+            nn.BatchNorm2d(256),
             nn.Conv2d(256, 256, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(256)
+            nn.BatchNorm2d(256)
         )
 
         self.conv4 = nn.Conv2d(256, num_classes, kernel_size=1, padding=0, dilation=1, bias=True)
@@ -270,7 +271,7 @@ class ResNet(nn.Module):
 
         self.fushion = nn.Sequential(
             nn.Conv2d(1024, 256, kernel_size=1, padding=0, dilation=1, bias=False),
-            InPlaceABNSync(256),
+            nn.BatchNorm2d(256),
             nn.Dropout2d(0.1),
             nn.Conv2d(256, num_classes, kernel_size=1, padding=0, dilation=1, bias=True)
         )

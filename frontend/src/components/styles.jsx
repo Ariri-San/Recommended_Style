@@ -55,7 +55,7 @@ function StyleCard({ style }) {
                             ref={imgRef}
                             onLoad={handleImageLoad}
                             className="img-fluid"
-                            src={style.image || style.image_local}
+                            src={style.image_local || style.image }
                             alt=""
                         />
 
