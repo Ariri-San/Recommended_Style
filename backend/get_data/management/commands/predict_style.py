@@ -52,23 +52,23 @@ class SkinToneClassifier(nn.Module):
     def forward(self, x):
         return self.fc(x)
 
-def estimate_skin_color(img_path):
-    mp_face = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
-    img = cv2.imread(img_path)
-    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    result = mp_face.process(rgb)
-    if not result.detections:
-        return None
-    for det in result.detections:
-        box = det.location_data.relative_bounding_box
-        h, w, _ = img.shape
-        x1, y1, x2, y2 = int(box.xmin*w), int(box.ymin*h), int((box.xmin+box.width)*w), int((box.xmin+box.height)*h)
-        face_crop = img[y1:y2, x1:x2]
-        if face_crop.size == 0:
-            return None
-        avg = face_crop.mean(axis=(0,1))
-        return f"rgb({int(avg[2])},{int(avg[1])},{int(avg[0])})"
-    return None
+# def estimate_skin_color(img_path):
+#     mp_face = mp.solutions.face_detection.FaceDetection(model_selection=1, min_detection_confidence=0.5)
+#     img = cv2.imread(img_path)
+#     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#     result = mp_face.process(rgb)
+#     if not result.detections:
+#         return None
+#     for det in result.detections:
+#         box = det.location_data.relative_bounding_box
+#         h, w, _ = img.shape
+#         x1, y1, x2, y2 = int(box.xmin*w), int(box.ymin*h), int((box.xmin+box.width)*w), int((box.xmin+box.height)*h)
+#         face_crop = img[y1:y2, x1:x2]
+#         if face_crop.size == 0:
+#             return None
+#         avg = face_crop.mean(axis=(0,1))
+#         return f"rgb({int(avg[2])},{int(avg[1])},{int(avg[0])})"
+#     return None
 
 
 class Command(BaseCommand):
@@ -373,72 +373,72 @@ class Command(BaseCommand):
         
         return [db_products[i] for i in top_idx]
 
-    def _extract_personal_attributes(self, img_input):
-        img = img_input if isinstance(img_input, Image.Image) else Image.open(img_input).convert('RGB')
-        t = self.transform(img).unsqueeze(0).to(self.device)
+    # def _extract_personal_attributes(self, img_input):
+    #     img = img_input if isinstance(img_input, Image.Image) else Image.open(img_input).convert('RGB')
+    #     t = self.transform(img).unsqueeze(0).to(self.device)
 
-        with torch.no_grad():
-            feat = self.feature_extractor(t).squeeze(-1).squeeze(-1)  # (2048,)
+    #     with torch.no_grad():
+    #         feat = self.feature_extractor(t).squeeze(-1).squeeze(-1)  # (2048,)
             
-            # Gender, Age
-            try:
-                # ساخت مدل سبک‌تر
-                model = DeepFace.build_model("Facenet")
+    #         # Gender, Age
+    #         try:
+    #             # ساخت مدل سبک‌تر
+    #             model = DeepFace.build_model("Facenet")
 
-                analysis = DeepFace.analyze(
-                    img_path=img_input,
-                    actions=['age','gender'],
-                    enforce_detection=False,
-                    detector_backend='retinaface',
-                    models={"age": model, "gender": model}
-                )
-                age = analysis[0]['age']
-                gender = analysis[0]['gender'].lower()
-            except Exception as e:
-                gender_out = self.gender_model(feat.unsqueeze(0))
-                gender = ['female', 'male'][torch.argmax(gender_out).item()]
-                age_out = self.age_model(feat.unsqueeze(0))
-                age = float(age_out.item())
-                print("DeepFace failed:", e)
+    #             analysis = DeepFace.analyze(
+    #                 img_path=img_input,
+    #                 actions=['age','gender'],
+    #                 enforce_detection=False,
+    #                 detector_backend='retinaface',
+    #                 models={"age": model, "gender": model}
+    #             )
+    #             age = analysis[0]['age']
+    #             gender = analysis[0]['gender'].lower()
+    #         except Exception as e:
+    #             gender_out = self.gender_model(feat.unsqueeze(0))
+    #             gender = ['female', 'male'][torch.argmax(gender_out).item()]
+    #             age_out = self.age_model(feat.unsqueeze(0))
+    #             age = float(age_out.item())
+    #             print("DeepFace failed:", e)
 
-            # Mediapipe → skin tone
-            try:
-                skin_color = estimate_skin_color(img_input)
-            except Exception as e:
-                skin_out = self.skin_model(feat.unsqueeze(0))   # (1,3)
-                skin_out = skin_out.squeeze().detach().cpu().numpy()  # → (3,)
-                skin_color = f"rgb{tuple(int(x) for x in skin_out.tolist())}"
-                print("Skin color failed:", e)
+    #         # Mediapipe → skin tone
+    #         try:
+    #             skin_color = estimate_skin_color(img_input)
+    #         except Exception as e:
+    #             skin_out = self.skin_model(feat.unsqueeze(0))   # (1,3)
+    #             skin_out = skin_out.squeeze().detach().cpu().numpy()  # → (3,)
+    #             skin_color = f"rgb{tuple(int(x) for x in skin_out.tolist())}"
+    #             print("Skin color failed:", e)
 
 
-        # Keypoint for height/body_type
-        kp_t = self.kp_preprocess(img).unsqueeze(0).to(self.device)
-        with torch.no_grad():
-            kp = self.kp_model(kp_t)[0]
+    #     # Keypoint for height/body_type
+    #     kp_t = self.kp_preprocess(img).unsqueeze(0).to(self.device)
+    #     with torch.no_grad():
+    #         kp = self.kp_model(kp_t)[0]
 
-        height, body_type, hair_color = None, None, None
-        if len(kp['keypoints']) > 0:
-            ys = kp['keypoints'][0][:, 1].cpu().numpy()
-            top_y, bottom_y = ys.min(), ys.max()
-            height = round((bottom_y - top_y) / 1000 * 170, 1)
+    #     height, body_type, hair_color = None, None, None
+    #     if len(kp['keypoints']) > 0:
+    #         ys = kp['keypoints'][0][:, 1].cpu().numpy()
+    #         top_y, bottom_y = ys.min(), ys.max()
+    #         height = round((bottom_y - top_y) / 1000 * 170, 1)
 
-            box = kp['boxes'][0].cpu().numpy()
-            ratio = (box[2] - box[0]) / (bottom_y - top_y + 1e-5)
-            body_type = 'slim' if ratio < 0.25 else 'average' if ratio < 0.35 else 'plus-size'
+    #         box = kp['boxes'][0].cpu().numpy()
+    #         ratio = (box[2] - box[0]) / (bottom_y - top_y + 1e-5)
+    #         body_type = 'slim' if ratio < 0.25 else 'average' if ratio < 0.35 else 'plus-size'
 
-            head_y = int(ys.min())
-            img_np = np.array(img)
-            patch = img_np[max(0, head_y - 40):head_y + 40, :, :]
-            if patch.size > 0:
-                c = patch.mean(axis=(0, 1))
-                # hair_color = f"rgb({int(c[0])},{int(c[1])},{int(c[2])})"
-                hair_color = f"rgb({int(c[2])},{int(c[1])},{int(c[0])})"
+    #         head_y = int(ys.min())
+    #         img_np = np.array(img)
+    #         patch = img_np[max(0, head_y - 40):head_y + 40, :, :]
+    #         if patch.size > 0:
+    #             c = patch.mean(axis=(0, 1))
+    #             # hair_color = f"rgb({int(c[0])},{int(c[1])},{int(c[2])})"
+    #             hair_color = f"rgb({int(c[2])},{int(c[1])},{int(c[0])})"
 
-        return {
-            'gender': gender,
-            'age': age,
-            'skin_color': skin_color,
-            'hair_color': hair_color,
-            'height': height,
-            'body_type': body_type
-        }
+    #     return {
+    #         'gender': gender,
+    #         'age': age,
+    #         'skin_color': skin_color,
+    #         'hair_color': hair_color,
+    #         'height': height,
+    #         'body_type': body_type
+    #     }
