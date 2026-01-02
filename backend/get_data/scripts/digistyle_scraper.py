@@ -80,11 +80,9 @@ def scrape_digistyle_segment(url: str, site: Site, gender: bool, start_page: int
             
             try:
                 product = Product.objects.get(
-                    title=clean_text(title_text),
-                    image=image_url,
+                    url=url_product
                 )
                 product.price = clean_price(price_text)
-                product.url = url_product
                 product.image = image_url
                 product.save()
             except:

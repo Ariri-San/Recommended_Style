@@ -80,7 +80,7 @@ function Style() {
     const [tempCategoryId, setTempCategoryId] = useState(null); // user selection before apply
     const [isColor, setIsColor] = useState(true);
     const [appliedCategoryId, setAppliedCategoryId] = useState(null); // last applied override
-    const [genderMode, setGenderMode] = useState("predicted"); // 'predicted' | 'male' | 'female'
+    const [genderMode, setGenderMode] = useState("all"); // 'all' | 'male' | 'female'
     const [imageSize, setImageSize] = useState({
         naturalWidth: 1,
         naturalHeight: 1,
@@ -187,9 +187,9 @@ function Style() {
     // helper to compute effective is_man
     function computeEffectiveIsMan() {
         if (genderMode === "male") return true;
-        if (genderMode === "female") return false;
-        if (genderMode === "all") return null;
-        return styleData?.is_man ?? false;
+        else if (genderMode === "female") return false;
+        else if (genderMode === "all") return null;
+        else return styleData?.is_man ?? null;
     }
 
     // fetch one page of products using current overrides
@@ -210,7 +210,7 @@ function Style() {
         async function loadFirst() {
             setTempCategoryId(null);
             setAppliedCategoryId(null);
-            setGenderMode("predicted");
+            setGenderMode("all");
             if (!selectedPredict) {
                 setProductsList([]);
                 setHasMoreProducts(false);
@@ -376,9 +376,7 @@ function Style() {
                     <label>
                         جنسیت:&nbsp;
                         <select value={genderMode} onChange={(e) => setGenderMode(e.target.value)}>
-                            <option value="predicted">
-                                {styleData ? (styleData.is_man ? "مرد (پیش‌بینی)" : "زن (پیش‌بینی)") : "استفاده از پیش‌بینی"}
-                            </option>
+                            <option value="all">همه</option>
                             <option value="male">مرد</option>
                             <option value="female">زن</option>
                         </select>

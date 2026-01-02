@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     # 'celery',
-    'debug_toolbar',
+    # 'debug_toolbar',
     'djoser',
     'django_filters',
     'corsheaders',
