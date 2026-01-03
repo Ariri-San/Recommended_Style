@@ -186,7 +186,7 @@ class MyStyleSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = models.MyStyle
-        fields = ['id', 'user', 'image', 'predicts', 'like', 'likes']
+        fields = ['id', 'user', 'image', 'created_at', 'predicts', 'like', 'likes']
 
 class CreateMyStyleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
