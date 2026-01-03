@@ -298,8 +298,8 @@ class Command(BaseCommand):
             "belt": [8],
             "shoes": [9, 10],
         }
-        min_pixels_by_class = {"sunglasses": 300, "hat": 700}
-        default_min_pixels = 1000
+        min_pixels_by_class = {"sunglasses": 300, "hat": 700, "shoes": 1000}
+        default_min_pixels = 2000
         detected = []
 
         for cname, labels in label_groups.items():
