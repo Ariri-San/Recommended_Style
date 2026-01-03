@@ -89,7 +89,7 @@ class MyStyleViewSet(ModelViewSet):
     serializer_class = serializers.MyStyleAndPredictSerializer
     
     def get_queryset(self):
-        return models.MyStyle.objects.filter(user__is_show=True)
+        return models.MyStyle.objects.filter(user__is_show=True).order_by('-created_at')
     
     def get_serializer_class(self):
         if self.request.method in ["POST", "PUT", "PATCH"]:

@@ -31,7 +31,7 @@ class MyStyleForm extends Form {
                         {this.state.image ? <img className="image-field" src={this.state.image} alt="Image"/> : ""}
                     </div>
 
-                    {this.renderButton("ثبت محصول", false, "button red-small")}
+                    {this.renderButton("ارسال عکس", false, "button red-small")}
                 </form>
             </>
         );
