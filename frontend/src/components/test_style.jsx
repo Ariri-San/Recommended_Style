@@ -179,21 +179,21 @@ function TestStyle() {
         {/* فرم آپلود */}
         {!results && (
             <form onSubmit={handleSubmit} className="upload-form card p-4">
-            <div className="form-row d-flex flex-column align-items-center">
+            <div className=" w-50 form-row d-flex flex-column align-items-center">
                 <label className="upload-label btn btn-outline-primary">
                 <input type="file" accept="image/*" onChange={handleImageChange} style={{display: "none"}} />
                 انتخاب/آپلود عکس
                 </label>
 
-                {imageFile && <div className="mt-2 small text-muted">فایل انتخاب‌شده: {imageFile.name}</div>}
+                {imageFile && <div className="mt-2 small text-muted">{imageFile.name} :فایل انتخاب‌شده</div>}
 
                 <div className="gender-select mt-3 d-flex gap-3">
                 <label className="btn btn-sm btn-outline-secondary">
-                    <input type="radio" name="gender" value="true" checked={isMan} onChange={() => setIsMan(true)} style={{marginLeft:8}} />
+                    <input type="radio" name="gender" value="true" checked={isMan} onChange={() => setIsMan(true)} style={{marginLeft:8, display:"flex"}} />
                     مردانه
                 </label>
                 <label className="btn btn-sm btn-outline-secondary">
-                    <input type="radio" name="gender" value="false" checked={!isMan} onChange={() => setIsMan(false)} style={{marginLeft:8}} />
+                    <input type="radio" name="gender" value="false" checked={!isMan} onChange={() => setIsMan(false)} style={{marginLeft:8, display:"flex"}} />
                     زنانه
                 </label>
                 </div>
